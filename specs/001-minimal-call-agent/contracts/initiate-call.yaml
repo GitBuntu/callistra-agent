@@ -1,0 +1,176 @@
+openapi: 3.0.3
+info:
+  title: Call Initiation API
+  version: 1.0.0
+  description: HTTP endpoint to initiate outbound healthcare calls to members
+
+paths:
+  /api/calls/initiate/{memberId}:
+    post:
+      summary: Initiate outbound call to member
+      description: |
+        Starts an automated outbound call to the specified member using Azure Communication Services.
+        Creates a CallSession record and returns the session ID for tracking.
+      operationId: initiateCall
+      tags:
+        - Calls
+      security:
+        - FunctionKey: []
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          description: Unique identifier of the member to call
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '202':
+          description: Call initiation accepted and in progress
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  callSessionId:
+                    type: integer
+                    description: Unique identifier for the call session
+                    example: 42
+                  memberId:
+                    type: integer
+                    description: Member being called
+                    example: 1
+                  status:
+                    type: string
+                    description: Initial call status
+                    enum: [Initiated]
+                    example: "Initiated"
+                  startTime:
+                    type: string
+                    format: date-time
+                    description: When call initiation was requested (UTC)
+                    example: "2026-01-10T14:30:00Z"
+                  callbackUrl:
+                    type: string
+                    format: uri
+                    description: Webhook URL for call events
+                    example: "https://myfunction.azurewebsites.net/api/calls/events"
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                InvalidMemberId:
+                  value:
+                    type: "https://callistra.io/errors/invalid-member"
+                    title: "Invalid Member ID"
+                    status: 400
+                    detail: "Member ID must be a positive integer"
+        '404':
+          description: Member not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                MemberNotFound:
+                  value:
+                    type: "https://callistra.io/errors/member-not-found"
+                    title: "Member Not Found"
+                    status: 404
+                    detail: "No member found with ID 999"
+        '409':
+          description: Conflict - member already has an active call
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                CallInProgress:
+                  value:
+                    type: "https://callistra.io/errors/call-in-progress"
+                    title: "Call Already In Progress"
+                    status: 409
+                    detail: "Member 1 already has an active call session (ID: 35)"
+        '422':
+          description: Unprocessable entity - member not eligible for calls
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                InactiveMember:
+                  value:
+                    type: "https://callistra.io/errors/member-not-active"
+                    title: "Member Not Active"
+                    status: 422
+                    detail: "Member status is 'Inactive', cannot initiate call"
+                MissingPhoneNumber:
+                  value:
+                    type: "https://callistra.io/errors/missing-phone-number"
+                    title: "Missing Phone Number"
+                    status: 422
+                    detail: "Member does not have a valid phone number"
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                AcsFailure:
+                  value:
+                    type: "https://callistra.io/errors/acs-failure"
+                    title: "Azure Communication Services Error"
+                    status: 500
+                    detail: "Failed to initiate call via Azure Communication Services"
+        '503':
+          description: Service temporarily unavailable
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                AcsUnavailable:
+                  value:
+                    type: "https://callistra.io/errors/service-unavailable"
+                    title: "Service Temporarily Unavailable"
+                    status: 503
+                    detail: "Azure Communication Services is currently unavailable"
+
+components:
+  securitySchemes:
+    FunctionKey:
+      type: apiKey
+      in: header
+      name: x-functions-key
+      description: Azure Functions authorization key
+
+  schemas:
+    ProblemDetails:
+      type: object
+      description: RFC 7807 Problem Details for HTTP APIs
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI reference identifying the problem type
+        title:
+          type: string
+          description: Short, human-readable summary of the problem
+        status:
+          type: integer
+          description: HTTP status code
+        detail:
+          type: string
+          description: Human-readable explanation specific to this occurrence
+        instance:
+          type: string
+          format: uri
+          description: URI reference identifying the specific occurrence
+      required:
+        - type
+        - title
+        - status

@@ -1,0 +1,172 @@
+openapi: 3.0.3
+info:
+  title: Call Events Webhook API
+  version: 1.0.0
+  description: Azure Communication Services webhook endpoint for call event notifications
+
+paths:
+  /api/calls/events:
+    post:
+      summary: Handle Azure Communication Services call events
+      description: |
+        Webhook endpoint that receives CloudEvent-formatted call events from Azure Communication Services.
+        Processes events like CallConnected, CallDisconnected, RecognizeCompleted (DTMF responses).
+      operationId: handleCallEvents
+      tags:
+        - Webhooks
+      security:
+        - FunctionKey: []
+      requestBody:
+        required: true
+        content:
+          application/cloudevents+json:
+            schema:
+              type: object
+              description: CloudEvent wrapper for ACS call events
+              properties:
+                id:
+                  type: string
+                  description: Unique event identifier
+                  example: "abc123-def456"
+                source:
+                  type: string
+                  format: uri
+                  description: Event source (Azure Communication Services)
+                  example: "calling/callConnections/abc123"
+                type:
+                  type: string
+                  description: Event type identifier
+                  enum:
+                    - Microsoft.Communication.CallConnected
+                    - Microsoft.Communication.CallDisconnected
+                    - Microsoft.Communication.RecognizeCompleted
+                    - Microsoft.Communication.PlayCompleted
+                  example: "Microsoft.Communication.CallConnected"
+                time:
+                  type: string
+                  format: date-time
+                  description: Event timestamp (UTC)
+                  example: "2026-01-10T14:35:00Z"
+                specversion:
+                  type: string
+                  description: CloudEvents specification version
+                  example: "1.0"
+                datacontenttype:
+                  type: string
+                  description: Content type of data payload
+                  example: "application/json"
+                subject:
+                  type: string
+                  description: Event subject (call connection ID)
+                  example: "callConnection/abc123"
+                data:
+                  type: object
+                  description: Event-specific payload (varies by event type)
+                  oneOf:
+                    - $ref: '#/components/schemas/CallConnectedData'
+                    - $ref: '#/components/schemas/CallDisconnectedData'
+                    - $ref: '#/components/schemas/RecognizeCompletedData'
+      responses:
+        '200':
+          description: Event processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eventId:
+                    type: string
+                    description: Acknowledged event ID
+                    example: "abc123-def456"
+                  processed:
+                    type: boolean
+                    description: Whether event was processed
+                    example: true
+        '400':
+          description: Invalid event payload
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+components:
+  securitySchemes:
+    FunctionKey:
+      type: apiKey
+      in: header
+      name: x-functions-key
+
+  schemas:
+    CallConnectedData:
+      type: object
+      description: Payload for CallConnected event (member answered)
+      properties:
+        callConnectionId:
+          type: string
+          description: ACS call connection identifier
+          example: "abc123-def456"
+        serverCallId:
+          type: string
+          description: ACS server call identifier
+          example: "xyz789"
+        correlationId:
+          type: string
+          description: Correlation ID for tracking
+          example: "corr-123"
+
+    CallDisconnectedData:
+      type: object
+      description: Payload for CallDisconnected event (call ended)
+      properties:
+        callConnectionId:
+          type: string
+          description: ACS call connection identifier
+          example: "abc123-def456"
+
+    RecognizeCompletedData:
+      type: object
+      description: Payload for RecognizeCompleted event (DTMF response captured)
+      properties:
+        callConnectionId:
+          type: string
+          description: ACS call connection identifier
+          example: "abc123-def456"
+        recognitionType:
+          type: string
+          description: Type of recognition
+          enum: [dtmf, speech]
+          example: "dtmf"
+        recognizeResult:
+          type: object
+          properties:
+            tones:
+              type: array
+              description: DTMF tones captured
+              items:
+                type: string
+                enum: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "#", "*"]
+              example: ["1"]
+
+    ProblemDetails:
+      type: object
+      description: RFC 7807 Problem Details for HTTP APIs
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+      required:
+        - type
+        - title
+        - status
