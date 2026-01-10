@@ -52,4 +52,14 @@ public interface ICallService
     /// Handles PlayCompleted event to trigger next action in call flow
     /// </summary>
     Task HandlePlayCompletedAsync(string callConnectionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Handles RecognizeCompleted event with DTMF tones and saves response
+    /// </summary>
+    Task HandleRecognizeCompletedAsync(string callConnectionId, string dtmfTones, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Saves a call response to the database
+    /// </summary>
+    Task SaveCallResponseAsync(int callSessionId, int questionNumber, string dtmfResponse, CancellationToken cancellationToken = default);
 }

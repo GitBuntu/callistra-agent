@@ -1,7 +1,11 @@
+using Azure.Communication.CallAutomation;
 using CallistraAgent.Functions.Data;
+using CallistraAgent.Functions.Data.Repositories;
 using CallistraAgent.Functions.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace CallistraAgent.Functions.Tests.Fixtures;
 
@@ -22,11 +26,23 @@ public class TestWebApplicationFactory
             options.UseInMemoryDatabase(databaseName));
 
         // Register repositories
-        services.AddScoped<Data.Repositories.IMemberRepository, Data.Repositories.MemberRepository>();
-        services.AddScoped<Data.Repositories.ICallSessionRepository, Data.Repositories.CallSessionRepository>();
+        services.AddScoped<IMemberRepository, MemberRepository>();
+        services.AddScoped<ICallSessionRepository, CallSessionRepository>();
+        services.AddScoped<ICallResponseRepository, CallResponseRepository>();
+
+        // Register services
+        services.AddScoped<CallService>();
+        services.AddScoped<IQuestionService, QuestionService>();
 
         // Register state management
         services.AddSingleton<CallSessionState>();
+
+        // Add logging
+        services.AddLogging(builder => builder.AddConsole());
+
+        // Add mocked Azure Communication Services
+        var mockCallAutomationClient = new Mock<CallAutomationClient>();
+        services.AddSingleton(mockCallAutomationClient.Object);
 
         Services = services.BuildServiceProvider();
     }

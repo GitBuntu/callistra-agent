@@ -22,6 +22,7 @@ public class CallService : ICallService
 {
     private readonly ICallSessionRepository _callSessionRepository;
     private readonly IMemberRepository _memberRepository;
+    private readonly ICallResponseRepository _callResponseRepository;
     private readonly CallAutomationClient _callAutomationClient;
     private readonly AzureCommunicationServicesOptions _acsOptions;
     private readonly IQuestionService _questionService;
@@ -31,6 +32,7 @@ public class CallService : ICallService
     public CallService(
         ICallSessionRepository callSessionRepository,
         IMemberRepository memberRepository,
+        ICallResponseRepository callResponseRepository,
         CallAutomationClient callAutomationClient,
         IOptions<AzureCommunicationServicesOptions> acsOptions,
         IQuestionService questionService,
@@ -39,6 +41,7 @@ public class CallService : ICallService
     {
         _callSessionRepository = callSessionRepository;
         _memberRepository = memberRepository;
+        _callResponseRepository = callResponseRepository;
         _callAutomationClient = callAutomationClient;
         _acsOptions = acsOptions.Value;
         _questionService = questionService;
@@ -311,5 +314,89 @@ public class CallService : ICallService
 
             _callSessionState.RemoveCallState(callConnectionId);
         }
+    }
+
+    public async Task HandleRecognizeCompletedAsync(string callConnectionId, string dtmfTones, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Handling RecognizeCompleted for {CallConnectionId} with DTMF: {DtmfTones}", callConnectionId, dtmfTones);
+
+        var callSession = await _callSessionRepository.GetByCallConnectionIdAsync(callConnectionId, cancellationToken);
+        if (callSession == null)
+        {
+            _logger.LogWarning("Call session not found for CallConnectionId: {CallConnectionId}", callConnectionId);
+            return;
+        }
+
+        var state = _callSessionState.GetCallState(callConnectionId);
+        if (state == null)
+        {
+            _logger.LogWarning("Call state not found for {CallConnectionId}", callConnectionId);
+            return;
+        }
+
+        // Save the response
+        await SaveCallResponseAsync(callSession.Id, state.CurrentQuestionNumber, dtmfTones, cancellationToken);
+
+        // Progress to next question
+        await HandleDtmfResponseAsync(callConnectionId, dtmfTones, cancellationToken);
+    }
+
+    public async Task SaveCallResponseAsync(int callSessionId, int questionNumber, string dtmfResponse, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Saving response for CallSession {CallSessionId}, Question {QuestionNumber}: {Response}",
+            callSessionId, questionNumber, dtmfResponse);
+
+        var questionText = questionNumber switch
+        {
+            1 => Constants.HealthcareQuestions.Question1,
+            2 => Constants.HealthcareQuestions.Question2,
+            3 => Constants.HealthcareQuestions.Question3,
+            _ => "Unknown question"
+        };
+
+        // Convert DTMF string to integer (1 = yes, 2 = no)
+        if (!int.TryParse(dtmfResponse, out var responseValue) || (responseValue != 1 && responseValue != 2))
+        {
+            _logger.LogWarning("Invalid DTMF response value: {Response}. Expected 1 or 2.", dtmfResponse);
+            throw new ArgumentException($"Invalid DTMF response: {dtmfResponse}. Expected 1 or 2.", nameof(dtmfResponse));
+        }
+
+        var response = new CallResponse
+        {
+            CallSessionId = callSessionId,
+            QuestionNumber = questionNumber,
+            QuestionText = questionText,
+            ResponseValue = responseValue,
+            RespondedAt = DateTime.UtcNow
+        };
+
+        await _callResponseRepository.CreateAsync(response, cancellationToken);
+        _logger.LogInformation("Response saved successfully for CallSession {CallSessionId}, Question {QuestionNumber}",
+            callSessionId, questionNumber);
+    }
+
+    private async Task CompleteCallAsync(string callConnectionId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Completing call {CallConnectionId}", callConnectionId);
+
+        var callSession = await _callSessionRepository.GetByCallConnectionIdAsync(callConnectionId, cancellationToken);
+        if (callSession == null)
+        {
+            _logger.LogWarning("Call session not found for CallConnectionId: {CallConnectionId}", callConnectionId);
+            return;
+        }
+
+        // Mark session as completed
+        callSession.Status = CallStatus.Completed;
+        callSession.EndTime = DateTime.UtcNow;
+        await _callSessionRepository.UpdateAsync(callSession, cancellationToken);
+
+        // Hang up the call
+        var callConnection = _callAutomationClient.GetCallConnection(callConnectionId);
+        await callConnection.HangUpAsync(forEveryone: true, cancellationToken);
+
+        // Clean up state
+        _callSessionState.RemoveCallState(callConnectionId);
+        _logger.LogInformation("Call {CallConnectionId} completed successfully", callConnectionId);
     }
 }
