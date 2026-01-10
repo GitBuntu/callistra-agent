@@ -75,6 +75,19 @@
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
 
+### Constitution Testing Requirements
+
+Based on **Callistra-Agent Constitution v1.0.0**:
+
+- **Code Quality** (Principle II): Mark features that will impact test coverage; target ≥80% coverage
+- **Testing Standards** (Principle III):
+  - Public APIs MUST have integration tests covering contract, errors, and data flow
+  - Critical user paths (e.g., any story marked P1 affecting member/call workflows) require end-to-end tests
+  - If feature involves latency-sensitive operations (Azure Speech, database queries), performance tests required (target <100ms for local ops, <500ms p95 for APIs)
+  - Unit test framework and integration test approach must be specified in implementation plan
+- **Performance Requirements** (Principle V): If feature impacts API latency or concurrency, SLA targets and load test strategy must be documented
+- **UX Consistency** (Principle IV): If UI/messaging changes, accessibility audit plan and design system compliance checklist required
+
 ## Requirements *(mandatory)*
 
 <!--
