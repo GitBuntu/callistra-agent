@@ -31,4 +31,25 @@ public interface ICallService
     /// Handles NoAnswer timeout
     /// </summary>
     Task HandleNoAnswerAsync(string callConnectionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Initializes call state and plays person detection prompt when call connects
+    /// </summary>
+    Task InitializeCallFlowAsync(string callConnectionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Handles person detection timeout per Azure AMD pattern.
+    /// Timeout = voicemail detected → Leaves callback message.
+    /// </summary>
+    Task HandlePersonDetectionTimeoutAsync(string callConnectionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Handles successful DTMF response and progresses to next question
+    /// </summary>
+    Task HandleDtmfResponseAsync(string callConnectionId, string dtmfTones, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Handles PlayCompleted event to trigger next action in call flow
+    /// </summary>
+    Task HandlePlayCompletedAsync(string callConnectionId, CancellationToken cancellationToken = default);
 }

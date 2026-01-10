@@ -2,11 +2,18 @@
 
 A minimal viable healthcare outreach call agent built with Azure Communication Services and .NET 9. The system initiates outbound calls to members, asks healthcare enrollment verification questions via text-to-speech, captures DTMF responses, and persists call data to Azure SQL Database.
 
+## MVP Scope
+
+This MVP supports two core call scenarios: **human answers** (person detection → 3 questions → completion) and **voicemail detection** (timeout → leave callback message). See [Feature Specification](specs/001-minimal-call-agent/spec.md#mvp-scope-core-scenarios-supported) for detailed scenario descriptions.
+
 ## Features
 
 - **Automated Outbound Calls**: Initiate calls to members using Azure Communication Services
-- **Call Status Tracking**: Monitor call lifecycle (Initiated, Ringing, Connected, Completed, Failed, NoAnswer)
-- **Real-time Webhooks**: Process call events (connected, disconnected, failed) via CloudEvents
+- **Answering Machine Detection**: AMD automatically separates human vs voicemail paths
+- **Text-to-Speech**: Neural voice playback for greetings, questions, and voicemail messages
+- **DTMF Capture**: Collect member responses via phone keypad
+- **Call Status Tracking**: Monitor call lifecycle (Initiated, Ringing, Connected, Completed, Disconnected, Failed, NoAnswer, VoicemailMessage)
+- **Real-time Webhooks**: Process call events via CloudEvents
 - **Database Persistence**: Entity Framework Core with SQL Server for Members, CallSessions, and CallResponses
 
 ## Architecture

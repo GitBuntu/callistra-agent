@@ -54,6 +54,10 @@ var host = new HostBuilder()
 
         // Register business services
         services.AddScoped<ICallService, CallService>();
+        services.AddScoped<IQuestionService, QuestionService>();
+
+        // Register CallSessionState as singleton (in-memory cache)
+        services.AddSingleton<CallSessionState>();
     })
     .Build();
 
