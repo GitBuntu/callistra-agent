@@ -111,10 +111,10 @@
 
 ### Tests for User Story 1 (Constitution Requirement: Integration tests for public APIs)
 
-- [ ] T045 [P] [US1] Create test fixture `TestWebApplicationFactory` in `tests/CallistraAgent.Functions.Tests/Fixtures/TestWebApplicationFactory.cs` for in-memory Functions host
-- [ ] T046 [P] [US1] Integration test for InitiateCall endpoint - success case in `tests/CallistraAgent.Functions.Tests/Integration/InitiateCallIntegrationTests.cs`
-- [ ] T047 [P] [US1] Integration test for InitiateCall endpoint - member not found (404) in InitiateCallIntegrationTests.cs
-- [ ] T048 [P] [US1] Integration test for InitiateCall endpoint - member already has active call (409) in InitiateCallIntegrationTests.cs
+- [X] T045 [P] [US1] Create test fixture `TestWebApplicationFactory` in `tests/CallistraAgent.Functions.Tests/Fixtures/TestWebApplicationFactory.cs` for in-memory Functions host
+- [X] T046 [P] [US1] Integration test for InitiateCall endpoint - success case in `tests/CallistraAgent.Functions.Tests/Behaviors/MemberBehaviorTests.cs` (BDD-style)
+- [X] T047 [P] [US1] Integration test for InitiateCall endpoint - member not found (404) in MemberBehaviorTests.cs (BDD-style)
+- [X] T048 [P] [US1] Integration test for InitiateCall endpoint - member already has active call (409) in CallSessionBehaviorTests.cs (BDD-style)
 - [ ] T049 [P] [US1] Integration test for CallConnected webhook event in `tests/CallistraAgent.Functions.Tests/Integration/CallWebhookIntegrationTests.cs`
 - [ ] T050 [P] [US1] Integration test for CallDisconnected webhook event in CallWebhookIntegrationTests.cs
 
@@ -160,9 +160,9 @@
 
 ### Tests for User Story 2
 
-- [ ] T072 [P] [US2] Integration test for playing person-detection prompt on CallConnected event in CallWebhookIntegrationTests.cs
-- [ ] T073 [P] [US2] Integration test for playing first question after person confirmation in CallWebhookIntegrationTests.cs
-- [ ] T074 [P] [US2] Integration test for question progression (Q1 → Q2 → Q3) in CallWebhookIntegrationTests.cs
+- [X] T072 [P] [US2] BDD behavior test - person detection initialization in `tests/CallistraAgent.Functions.Tests/Behaviors/QuestionFlowBehaviorTests.cs`
+- [X] T073 [P] [US2] BDD behavior test - progression to first question in QuestionFlowBehaviorTests.cs
+- [X] T074 [P] [US2] BDD behavior test - question progression (Q1 → Q2 → Q3 → complete) in QuestionFlowBehaviorTests.cs
 
 ### Service Layer for User Story 2
 
