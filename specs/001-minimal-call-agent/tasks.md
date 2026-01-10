@@ -189,11 +189,11 @@
 
 ### Unit Tests for User Story 2
 
-- [ ] T089 [P] [US2] Unit test for QuestionService.PlayPersonDetectionPrompt in `tests/CallistraAgent.Functions.Tests/Unit/Services/QuestionServiceTests.cs`
-- [ ] T090 [P] [US2] Unit test for QuestionService.PlayHealthcareQuestion with question number 1-3 in QuestionServiceTests.cs
-- [ ] T091 [P] [US2] Unit test for QuestionService.HandleInvalidDtmf - retry logic in QuestionServiceTests.cs
-- [ ] T092 [P] [US2] Unit test for CallService.HandlePersonDetectionTimeout - voicemail flow in CallServiceTests.cs
-- [ ] T093 [P] [US2] Unit test for call state progression through questions in CallServiceTests.cs
+- [X] T089 [P] [US2] Unit test for QuestionService.PlayPersonDetectionPrompt in `tests/CallistraAgent.Functions.Tests/Unit/Services/QuestionServiceTests.cs`
+- [X] T090 [P] [US2] Unit test for QuestionService.PlayHealthcareQuestion with question number 1-3 in QuestionServiceTests.cs
+- [X] T091 [P] [US2] Unit test for QuestionService.HandleInvalidDtmf - retry logic in QuestionServiceTests.cs
+- [X] T092 [P] [US2] Unit test for CallService.HandlePersonDetectionTimeout - voicemail flow in CallServiceTests.cs
+- [X] T093 [P] [US2] Unit test for call state progression through questions in CallServiceTests.cs
 
 **Story 2 Deliverable**: ✅ System asks questions and detects voicemail
 
@@ -207,33 +207,33 @@
 
 ### Tests for User Story 3
 
-- [ ] T094 [P] [US3] Integration test for RecognizeCompleted webhook event with DTMF response in CallWebhookIntegrationTests.cs
-- [ ] T095 [P] [US3] Integration test for saving CallResponse record after DTMF capture in CallWebhookIntegrationTests.cs
-- [ ] T096 [P] [US3] Integration test for completing call after all 3 questions answered in CallWebhookIntegrationTests.cs
-- [ ] T097 [P] [US3] Database integration test for CallResponse foreign key constraints in `tests/CallistraAgent.Functions.Tests/Integration/DatabaseIntegrationTests.cs`
+- [X] T094 [P] [US3] Integration test for RecognizeCompleted webhook event with DTMF response in CallWebhookIntegrationTests.cs
+- [X] T095 [P] [US3] Integration test for saving CallResponse record after DTMF capture in CallWebhookIntegrationTests.cs
+- [X] T096 [P] [US3] Integration test for completing call after all 3 questions answered in CallWebhookIntegrationTests.cs
+- [X] T097 [P] [US3] Database integration test for CallResponse foreign key constraints in `tests/CallistraAgent.Functions.Tests/Integration/DatabaseIntegrationTests.cs`
 
 ### Service Layer for User Story 3
 
-- [ ] T098 [P] [US3] Create `ICallResponseRepository` interface in `src/CallistraAgent.Functions/Data/Repositories/ICallResponseRepository.cs`
-- [ ] T099 [US3] Implement `CallResponseRepository` in `src/CallistraAgent.Functions/Data/Repositories/CallResponseRepository.cs` with async save method
-- [ ] T100 [US3] Register CallResponseRepository as scoped service in Program.cs DI container
-- [ ] T101 [US3] Add method to CallService for handling RecognizeCompleted event (extract DTMF tones)
-- [ ] T102 [US3] Add method to CallService for saving CallResponse record with question number, text, and response value
-- [ ] T103 [US3] Add method to CallService for checking if all questions answered (progress to Completed status)
-- [ ] T104 [US3] Update CallEventWebhookFunction to route RecognizeCompleted event to CallService
+- [X] T098 [P] [US3] Create `ICallResponseRepository` interface in `src/CallistraAgent.Functions/Data/Repositories/ICallResponseRepository.cs`
+- [X] T099 [US3] Implement `CallResponseRepository` in `src/CallistraAgent.Functions/Data/Repositories/CallResponseRepository.cs` with async save method
+- [X] T100 [US3] Register CallResponseRepository as scoped service in Program.cs DI container
+- [X] T101 [US3] Add method to CallService for handling RecognizeCompleted event (extract DTMF tones)
+- [X] T102 [US3] Add method to CallService for saving CallResponse record with question number, text, and response value
+- [X] T103 [US3] Add method to CallService for checking if all questions answered (progress to Completed status)
+- [X] T104 [US3] Update CallEventWebhookFunction to route RecognizeCompleted event to CallService
 
 ### Call Completion Logic
 
-- [ ] T105 [US3] Add method to CallService to mark CallSession as Completed after final question answered
-- [ ] T106 [US3] Add method to CallService to hang up call automatically after completion
-- [ ] T107 [US3] Update CallService to handle partial responses on mid-call disconnect (save what was captured)
+- [X] T105 [US3] Add method to CallService to mark CallSession as Completed after final question answered
+- [X] T106 [US3] Add method to CallService to hang up call automatically after completion
+- [X] T107 [US3] Update CallService to handle partial responses on mid-call disconnect (save what was captured)
 
 ### Unit Tests for User Story 3
 
-- [ ] T108 [P] [US3] Unit test for CallService.HandleRecognizeCompleted - valid DTMF response in CallServiceTests.cs
-- [ ] T109 [P] [US3] Unit test for CallService.SaveCallResponse - database persistence in CallServiceTests.cs
-- [ ] T110 [P] [US3] Unit test for CallService call completion logic - all questions answered in CallServiceTests.cs
-- [ ] T111 [P] [US3] Unit test for partial response handling on disconnect in CallServiceTests.cs
+- [X] T108 [P] [US3] Unit test for CallService.HandleRecognizeCompleted - valid DTMF response in CallServiceTests.cs
+- [X] T109 [P] [US3] Unit test for CallService.SaveCallResponse - database persistence in CallServiceTests.cs
+- [X] T110 [P] [US3] Unit test for CallService call completion logic - all questions answered in CallServiceTests.cs
+- [X] T111 [P] [US3] Unit test for partial response handling on disconnect in CallServiceTests.cs
 
 **Story 3 Deliverable**: ✅ System captures and persists all responses
 
