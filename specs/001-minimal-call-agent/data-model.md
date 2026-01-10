@@ -104,6 +104,7 @@ Represents a single outbound call attempt to a member.
 - `Disconnected` - Member hung up before completing all questions
 - `Failed` - System error or call setup failure
 - `NoAnswer` - 30-second timeout expired without answer
+- `VoicemailMessage` - Voicemail detected, generic callback message played
 
 **Indexes**:
 - Index on `MemberId` (lookup all calls for a member)
@@ -118,11 +119,12 @@ Represents a single outbound call attempt to a member.
 
 **Business Rules**:
 - Only one `Initiated` or `Connected` call per member at a time (prevent duplicate calls)
-- `EndTime` is set when status changes to Completed, Disconnected, Failed, or NoAnswer
+- `EndTime` is set when status changes to Completed, Disconnected, Failed, NoAnswer, or VoicemailMessage
 - Status transitions follow state machine:
-  - `Initiated → Ringing → Connected → [Completed | Disconnected]`
+  - `Initiated → Ringing → Connected → [Completed | Disconnected | VoicemailMessage]`
   - `Initiated → Failed` (call setup error)
   - `Ringing → NoAnswer` (30s timeout)
+  - `Connected → VoicemailMessage` (no DTMF response to person-detection prompt)
 
 ---
 
@@ -188,7 +190,7 @@ CREATE TABLE CallSessions (
     UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     
     CONSTRAINT FK_CallSession_Member FOREIGN KEY (MemberId) REFERENCES Members(Id),
-    CONSTRAINT CHK_CallSession_Status CHECK (Status IN ('Initiated', 'Ringing', 'Connected', 'Completed', 'Disconnected', 'Failed', 'NoAnswer')),
+    CONSTRAINT CHK_CallSession_Status CHECK (Status IN ('Initiated', 'Ringing', 'Connected', 'Completed', 'Disconnected', 'Failed', 'NoAnswer', 'VoicemailMessage')),
     CONSTRAINT CHK_CallSession_EndTime CHECK (EndTime IS NULL OR EndTime >= StartTime),
     CONSTRAINT UQ_CallSession_CallConnectionId UNIQUE (CallConnectionId)
 );

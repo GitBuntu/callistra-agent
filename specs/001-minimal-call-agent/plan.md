@@ -1,23 +1,44 @@
 # Implementation Plan: Minimal Viable Healthcare Call Agent
 
-**Branch**: `001-minimal-call-agent` | **Date**: January 10, 2026 | **Spec**: [spec.md](spec.md)
+**Branch**: `001-minimal-call-agent` | **Date**: 2026-01-10 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/001-minimal-call-agent/spec.md`
+
+**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-Build a minimal healthcare outreach call system with Azure Communication Services. System places outbound calls via HTTP API, asks 3 healthcare questions using text-to-speech, captures yes/no responses via DTMF, and persists data to SQL database. Target: 1-day MVP with 3 Azure Function endpoints and 3 database tables.
+Build a minimal healthcare outreach call agent using Azure Communication Services to place outbound calls, ask 3 healthcare enrollment verification questions via text-to-speech, capture DTMF (yes/no) responses, and persist call sessions and responses to Azure SQL Database. The system handles voicemail detection, call failure scenarios, and provides HTTP APIs for call initiation and webhook event processing. Target: 1000 concurrent users, <500ms API latency (p95), 3-minute call duration for cooperative participants.
 
 ## Technical Context
 
-**Language/Version**: C# / .NET 8  
-**Primary Dependencies**: Azure Functions v4, Azure.Communication.CallAutomation SDK, Entity Framework Core, SQL Server  
-**Storage**: SQL Server (3 tables: Members, CallSessions, CallResponses)  
-**Testing**: xUnit, Microsoft.AspNetCore.Mvc.Testing (in-memory function host)  
-**Target Platform**: Azure Functions Consumption Plan (Windows/Linux)  
-**Project Type**: Single serverless API project  
-**Performance Goals**: 5 concurrent calls, <5s call initiation, <3s question playback  
-**Constraints**: 30s no-answer timeout, 10s DTMF response timeout, 5-minute function timeout  
-**Scale/Scope**: MVP supports 100 members, 1000 call sessions, single question flow
+**Language/Version**: C# / .NET 9 (LTS)  
+**Primary Dependencies**: 
+- Azure.Communication.CallAutomation (latest stable)
+- Microsoft.EntityFrameworkCore 8+ (Azure SQL provider)
+- Microsoft.Azure.Functions.Worker.Extensions.Http (isolated worker model)
+- Azure.Identity (for managed identity authentication)
+
+**Storage**: Azure SQL Server (production), SQL Server 2025 (local testing), Database name: `CallistraAgent`  
+**Testing**: xUnit with FluentAssertions, Moq for mocking, in-memory test server for Azure Functions HTTP triggers  
+**Target Platform**: Azure Functions (consumption plan), Linux runtime  
+**Project Type**: Backend service (Azure Functions + SQL database)  
+**Performance Goals**: 
+- Call initiation: <400ms (p95)
+- Member query: <50ms (p95)
+- Support 1000 concurrent calls
+- API responses: <500ms (p95)
+
+**Constraints**: 
+- Azure Communication Services SLA for call latency (external dependency)
+- Azure Functions 5-minute timeout (consumption plan)
+- SQL Server 2 MB item limit (not applicable to relational data)
+- HIPAA compliance for data handling (no PHI in voicemail messages)
+
+**Scale/Scope**: 
+- 100k+ members in database
+- 1M+ call session records
+- 3 endpoints, 3 database tables
+- Simplified MVP scope
 
 ## Constitution Check
 
@@ -25,11 +46,45 @@ Build a minimal healthcare outreach call system with Azure Communication Service
 
 Based on **Callistra-Agent Constitution v1.0.0** (see `.specify/memory/constitution.md`):
 
-- ✅ **Pragmatism**: MVP-first approach documented; complexity deliberately minimal (3 endpoints, 3 tables); optimization deferred until user feedback received; no technical debt in Phase 1 (new greenfield project)
-- ✅ **Code Quality**: .NET coding standards enforced via .editorconfig; target 80% test coverage; code review required (branch protection); inline documentation for call flow logic; no duplication (single-purpose functions)
-- ✅ **Testing Standards**: xUnit framework specified; integration tests planned for all 3 HTTP endpoints covering happy path, error cases, and data persistence; end-to-end test for P1 flow (initiate → connect → question); no performance tests (ACS SLA sufficient for MVP)
-- ✅ **UX Consistency**: N/A - No user interface; backend API only; error messages in API responses follow standard HTTP problem details format
-- ✅ **Performance Requirements**: Target SLAs defined (5s initiation, 3s playback, 10s DTMF timeout); using Azure Communication Services default SLA (<200ms API responses); no load testing required for MVP (5 concurrent calls well within Azure Functions limits)
+### Initial Check (Pre-Design)
+
+- ✅ **Pragmatism**: MVP approach explicitly documented with out-of-scope features tracked. Technical debt: Using consumption plan (cold starts accepted) to minimize infrastructure complexity; will optimize with premium plan if metrics show >3s cold start impact on user experience.
+  
+- ✅ **Code Quality**: Linting: .editorconfig with C# formatting rules. Testing: xUnit framework, target 80%+ coverage. Code review: Required via PR process. Documentation: Inline XML comments for public APIs, README for setup.
+  
+- ✅ **Testing Standards**: 
+  - Unit tests: All domain logic (call session state management, response validation)
+  - Integration tests: All 3 HTTP endpoints (InitiateCall, CallWebhook events)
+  - E2E test: Full call flow (initiate → connect → ask question → capture response → persist)
+  - Performance tests: NOT required for MVP (Azure Communication Services SLA sufficient)
+  - Test suite target: <5 minutes total execution
+  
+- ✅ **UX Consistency**: 
+  - No UI in MVP (backend API only)
+  - Voice prompts use consistent wording (defined in spec: 3 questions + voicemail callback message)
+  - Error responses follow standard HTTP status codes with actionable JSON messages
+  - Accessibility: N/A for voice-only interface (standard DTMF tone detection)
+  
+- ✅ **Performance Requirements**: 
+  - SLAs documented: Call initiation <400ms (p95), Member query <50ms (p95)
+  - Client-side operations: N/A (backend service only)
+  - Load test strategy: Azure Load Testing with 1000 concurrent simulated call initiations before release
+  - Monitoring: Application Insights for telemetry (call duration, DTMF capture rate, error rates)
+  - Optimization triggers: If p95 latency >500ms OR error rate >1%, investigate and optimize
+
+### Post-Design Re-Check (Phase 1 Complete)
+
+- ✅ **Pragmatism**: All technical decisions documented in research.md with rationale. No new technical debt introduced. Design remains simple with 3 endpoints, 3 tables, standard Azure services.
+
+- ✅ **Code Quality**: Project structure defined with clear separation of concerns (Functions, Models, Services, Data, Repositories). EF Core configuration documented in data-model.md. API contracts specified in OpenAPI format.
+
+- ✅ **Testing Standards**: Test project structure defined with unit/integration/e2e/load test organization. Fixtures for mocking Azure SDK clients documented. All public APIs have contract definitions.
+
+- ✅ **UX Consistency**: API error responses follow RFC 7807 Problem Details format (consistent across all endpoints). Voice prompts standardized (person-detection → 3 questions → voicemail fallback).
+
+- ✅ **Performance Requirements**: Database indexes defined on all foreign keys and frequently queried fields. Connection pooling and retry policies specified. Compiled queries identified for hot paths (member lookup).
+
+**Constitution Gate**: ✅ PASS (both pre-design and post-design) - All principles satisfied. Design is implementation-ready.
 
 ## Project Structure
 
@@ -37,188 +92,155 @@ Based on **Callistra-Agent Constitution v1.0.0** (see `.specify/memory/constitut
 
 ```text
 specs/001-minimal-call-agent/
-├── plan.md              # This file
-├── research.md          # Phase 0: Azure SDK decisions, best practices
-├── data-model.md        # Phase 1: Entity definitions
-├── quickstart.md        # Phase 1: Setup and first call guide
-├── contracts/           # Phase 1: HTTP endpoint OpenAPI specs
-│   ├── initiate-call.yaml
+├── plan.md              # This file (/speckit.plan command output)
+├── spec.md              # Feature specification (completed)
+├── research.md          # Phase 0 output (/speckit.plan command)
+├── data-model.md        # Phase 1 output (already exists, will enhance)
+├── quickstart.md        # Phase 1 output (/speckit.plan command)
+├── contracts/           # Phase 1 output (partially exists, will enhance)
 │   ├── call-events.yaml
-│   └── call-status.yaml
-└── tasks.md             # Phase 2: Implementation tasks (via /speckit.tasks)
+│   ├── call-status.yaml
+│   └── initiate-call.yaml
+├── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+└── checklists/
+    └── requirements.md
 ```
 
 ### Source Code (repository root)
 
 ```text
-src/
-├── CallAgent.Functions/          # Azure Functions project
-│   ├── Functions/
-│   │   ├── CallInitiation.cs    # HTTP trigger: POST /api/calls/initiate/{memberId}
-│   │   ├── CallEvents.cs        # HTTP trigger: POST /api/calls/events
-│   │   └── CallStatus.cs        # HTTP trigger: GET /api/calls/status/{callConnectionId}
-│   ├── Services/
-│   │   ├── ICallService.cs      # Interface for call operations
-│   │   └── CallService.cs       # Implements call initiation, DTMF handling
-│   ├── Data/
-│   │   ├── CallAgentDbContext.cs    # EF Core context
-│   │   ├── Entities/
-│   │   │   ├── Member.cs        # Member entity
-│   │   │   ├── CallSession.cs   # Call session entity
-│   │   │   └── CallResponse.cs  # Response entity
-│   │   └── Migrations/          # EF migrations
-│   ├── Models/
-│   │   ├── InitiateCallRequest.cs   # API request models
-│   │   └── CallEventPayload.cs      # ACS event models
-│   ├── Configuration/
-│   │   └── AcsOptions.cs        # Azure Communication Services settings
-│   ├── host.json                # Function runtime config
-│   ├── local.settings.json      # Local development settings
-│   └── CallAgent.Functions.csproj
-│
-tests/
-├── CallAgent.Functions.Tests/
-│   ├── Integration/
-│   │   ├── CallInitiationTests.cs      # Test call initiation endpoint
-│   │   ├── CallEventsTests.cs          # Test event webhook
-│   │   └── CallStatusTests.cs          # Test status endpoint
-│   ├── Unit/
-│   │   └── CallServiceTests.cs         # Test business logic
-│   └── CallAgent.Functions.Tests.csproj
-│
-database/
-└── init.sql                     # Initial schema for Members table
+CallistraAgent/          # SQL Database project (already exists)
+├── CallistraAgent.sqlproj
+└── Tables/              # To be created in implementation phase
+    ├── Members.sql
+    ├── CallSessions.sql
+    └── CallResponses.sql
 
-.editorconfig                    # C# code style rules
-CallAgent.sln                    # Solution file
+src/
+├── CallistraAgent.Functions/    # Azure Functions project
+│   ├── Functions/
+│   │   ├── InitiateCallFunction.cs
+│   │   ├── CallEventWebhookFunction.cs
+│   │   └── HealthCheckFunction.cs
+│   ├── Models/
+│   │   ├── Member.cs
+│   │   ├── CallSession.cs
+│   │   ├── CallResponse.cs
+│   │   └── DTOs/
+│   │       ├── InitiateCallRequest.cs
+│   │       ├── InitiateCallResponse.cs
+│   │       └── CallEventPayload.cs
+│   ├── Services/
+│   │   ├── ICallService.cs
+│   │   ├── CallService.cs
+│   │   ├── IQuestionService.cs
+│   │   └── QuestionService.cs
+│   ├── Data/
+│   │   ├── CallistraAgentDbContext.cs
+│   │   └── Repositories/
+│   │       ├── IMemberRepository.cs
+│   │       ├── MemberRepository.cs
+│   │       ├── ICallSessionRepository.cs
+│   │       └── CallSessionRepository.cs
+│   ├── Configuration/
+│   │   ├── AzureCommunicationServicesOptions.cs
+│   │   └── DatabaseOptions.cs
+│   ├── host.json
+│   ├── local.settings.json
+│   └── CallistraAgent.Functions.csproj
+│
+└── CallistraAgent.Core/         # Shared domain logic (optional, can inline in Functions if simpler)
+    ├── Enums/
+    │   └── CallStatus.cs
+    ├── Constants/
+    │   └── HealthcareQuestions.cs
+    └── CallistraAgent.Core.csproj
+
+tests/
+├── CallistraAgent.Functions.Tests/
+│   ├── Unit/
+│   │   ├── Services/
+│   │   │   ├── CallServiceTests.cs
+│   │   │   └── QuestionServiceTests.cs
+│   │   └── Functions/
+│   │       ├── InitiateCallFunctionTests.cs
+│   │       └── CallEventWebhookFunctionTests.cs
+│   ├── Integration/
+│   │   ├── InitiateCallIntegrationTests.cs
+│   │   ├── CallWebhookIntegrationTests.cs
+│   │   └── DatabaseIntegrationTests.cs
+│   ├── EndToEnd/
+│   │   └── FullCallFlowTests.cs
+│   ├── Fixtures/
+│   │   └── TestWebApplicationFactory.cs
+│   └── CallistraAgent.Functions.Tests.csproj
+│
+└── CallistraAgent.LoadTests/
+    ├── InitiateCallLoadTest.cs
+    └── CallistraAgent.LoadTests.csproj
+
+.editorconfig                    # C# formatting rules
+CallistraAgent.sln              # Solution file
+README.md                        # Setup and running instructions
 ```
 
-**Structure Decision**: Single Azure Functions project with Entity Framework Core for data access. Minimal separation: Functions (HTTP triggers), Services (business logic), Data (EF Core entities). No separate API/UI projects - this is backend-only. Testing uses in-memory function host for integration tests.
+**Structure Decision**: Backend service with Azure Functions (isolated worker model) for API endpoints and webhook handlers. Separate SQL project for database schema management. Testing organized by type (unit/integration/e2e/load). Core domain logic can be inlined in Functions project for MVP simplicity (avoid premature abstraction), extract to separate Core project only if shared logic emerges.
+
+## Complexity Tracking
+
+> **Fill ONLY if Constitution Check has violations that must be justified**
+
+No violations. All Constitution principles satisfied for this MVP scope.
 
 ---
 
-## Phase 0: Research ✅
+## Plan Completion Summary
 
-**Status**: Complete  
-**Output**: [research.md](research.md)
+**Status**: ✅ Phase 0 & Phase 1 Complete | **Date**: 2026-01-10
 
-### Key Decisions Made
+### Deliverables Generated
 
-1. **Azure Communication Services SDK**: CallAutomation SDK v1.2.0+ for outbound calling and DTMF
-2. **Data Access**: Entity Framework Core 8.0 (sufficient performance for MVP, migration support)
-3. **DTMF Timeout**: 10 seconds (industry standard) with 1 re-prompt
-4. **Healthcare Questions**: Standard enrollment verification (identity, awareness, assistance)
-5. **Security**: Function-level authorization keys for MVP
-6. **Call Status Model**: 7-state telephony model (Initiated → Ringing → Connected → Completed/Disconnected/Failed/NoAnswer)
-7. **Testing Strategy**: Mock ACS SDK for unit tests, in-memory function host for integration tests
-8. **Connection Pooling**: EF Core defaults sufficient for MVP scale
+| Artifact | Status | Path |
+|----------|--------|------|
+| Implementation Plan | ✅ Complete | [plan.md](plan.md) |
+| Research & Technology Decisions | ✅ Complete | [research.md](research.md) |
+| Data Model & Schema | ✅ Enhanced | [data-model.md](data-model.md) |
+| API Contracts | ✅ Enhanced | [contracts/](contracts/) |
+| Quickstart Guide | ✅ Enhanced | [quickstart.md](quickstart.md) |
+| Agent Context | ✅ Updated | `.github/agents/copilot-instructions.md` |
 
-All technical unknowns resolved. No blocking issues identified.
+### Key Decisions Finalized
 
----
+- **Runtime**: .NET 9 with Azure Functions isolated worker model
+- **Database**: Azure SQL Server (CallistraAgent) with EF Core 8+
+- **Call Management**: Azure Communication Services Call Automation SDK
+- **Testing**: xUnit + FluentAssertions + Moq with 4-tier strategy (unit/integration/e2e/load)
+- **Voicemail Detection**: DTMF-based person-detection prompt (5-second timeout)
+- **Healthcare Questions**: 3 specific questions defined in spec
+- **Status Model**: 8 states including VoicemailMessage for voicemail detection
 
-## Phase 1: Design ✅
+### Constitution Gates
 
-**Status**: Complete  
-**Outputs**: 
-- [data-model.md](data-model.md) - Entity definitions and relationships
-- [contracts/](contracts/) - OpenAPI specs for 3 HTTP endpoints
-- [quickstart.md](quickstart.md) - Setup and testing guide
+- ✅ **Pre-Design Gate**: PASS (all principles satisfied)
+- ✅ **Post-Design Gate**: PASS (implementation-ready)
 
-### Data Model
+### Next Steps
 
-**3 Entities**:
-1. **Member** - Healthcare program enrollees (Id, Name, Phone, Program, Status)
-2. **CallSession** - Call attempts (Id, MemberId, CallConnectionId, Status, Times)
-3. **CallResponse** - Question responses (Id, CallSessionId, QuestionNumber, ResponseValue)
+1. **Run `/speckit.tasks`** to generate task breakdown and estimation
+2. **Begin implementation** following project structure in this plan
+3. **Set up local development environment** using [quickstart.md](quickstart.md)
+4. **Create feature branch**: `001-minimal-call-agent`
+5. **Follow TDD workflow**: Write tests first, then implement
 
-**Relationships**: Member 1:N CallSession 1:N CallResponse
+### Implementation Readiness
 
-**Status Enum**: Initiated → Ringing → Connected → [Completed | Disconnected | Failed | NoAnswer]
+| Category | Readiness | Notes |
+|----------|-----------|-------|
+| Requirements | 100% | All user stories, edge cases, and success criteria defined |
+| Architecture | 100% | Project structure, dependencies, and data model finalized |
+| Contracts | 100% | API endpoints and event schemas documented |
+| Environment Setup | 100% | Local dev and Azure resource setup documented |
+| Testing Strategy | 100% | Test framework, mocking approach, and coverage targets defined |
+| Compliance | 100% | HIPAA considerations documented, no PHI in voicemail |
 
-### API Contracts
-
-**3 HTTP Endpoints**:
-1. **POST /api/calls/initiate/{memberId}** - Initiate outbound call (returns 202 Accepted)
-2. **POST /api/calls/events** - ACS webhook for CloudEvent processing (CallConnected, RecognizeCompleted, CallDisconnected)
-3. **GET /api/calls/status/{callConnectionId}** - Query call status and responses
-
-All endpoints use RFC 7807 Problem Details for error responses. Function key authorization required.
-
-### Agent Context Updated
-
-GitHub Copilot context file created with:
-- Language: C# / .NET 8
-- Framework: Azure Functions v4, Azure.Communication.CallAutomation SDK, Entity Framework Core
-- Database: SQL Server (3 tables)
-- Project type: Single serverless API project
-
----
-
-## Phase 2: Implementation Planning
-
-**Status**: Ready for `/speckit.tasks`  
-**Output**: tasks.md (NOT generated by this command)
-
-### High-Level Task Breakdown
-
-Phase 2 will generate detailed tasks for:
-
-1. **Project Setup** (~30 minutes)
-   - Create Azure Functions project structure
-   - Configure NuGet packages
-   - Set up Entity Framework Core DbContext
-   - Create database migration
-
-2. **Core Functions** (~2 hours)
-   - Implement CallInitiation.cs (HTTP trigger)
-   - Implement CallEvents.cs (webhook handler)
-   - Implement CallStatus.cs (query endpoint)
-
-3. **Business Logic** (~1.5 hours)
-   - Implement CallService.cs (ACS integration)
-   - Implement question flow logic
-   - Implement DTMF response handling
-
-4. **Testing** (~2 hours)
-   - Write unit tests for CallService
-   - Write integration tests for all 3 endpoints
-   - Write end-to-end test checklist
-
-5. **Documentation** (~30 minutes)
-   - Create .editorconfig for code style
-   - Update README with architecture
-   - Document deployment process
-
-**Total Estimated Time**: 6.5 hours (within 1-day MVP target)
-
----
-
-## Constitution Re-Check (Post-Design)
-
-Based on **Callistra-Agent Constitution v1.0.0**:
-
-- ✅ **Pragmatism**: Design remains minimal; no scope creep; all complexity justified
-- ✅ **Code Quality**: Clear separation of concerns (Functions → Services → Data); testable architecture
-- ✅ **Testing Standards**: All public APIs covered by integration tests; critical path (P1) has E2E test plan
-- ✅ **UX Consistency**: Error messages use standard Problem Details format; consistent across endpoints
-- ✅ **Performance Requirements**: SLAs align with spec (5s initiation, 3s playback, 10s DTMF); no changes needed
-
-**Gate**: ✅ PASSED - Proceed to task breakdown
-
----
-
-## Next Steps
-
-1. Run `/speckit.tasks` to generate detailed implementation tasks in tasks.md
-2. Execute tasks sequentially (or assign to team members)
-3. Follow quickstart.md for Azure resource provisioning
-4. Test locally using dev tunnels
-5. Deploy to Azure Functions for production testing
-
----
-
-## Implementation Plan Complete ✅
-
-Branch: `001-minimal-call-agent`  
-Ready for task generation via `/speckit.tasks` command.
+**Ready for implementation phase**. All planning artifacts complete.

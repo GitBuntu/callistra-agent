@@ -1,237 +1,351 @@
 # Tasks: Minimal Viable Healthcare Call Agent
 
+**Feature**: 001-minimal-call-agent  
+**Generated**: 2026-01-10  
 **Input**: Design documents from `/specs/001-minimal-call-agent/`
-**Prerequisites**: plan.md ✅, spec.md ✅, research.md ✅, data-model.md ✅, contracts/ ✅
 
-**Tests**: Integration tests included per Constitution Principle III (Testing Standards). Tests follow TDD pattern - written and verified to fail before implementation.
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-**Organization**: Tasks grouped by user story to enable independent implementation and testing of each story.
+**Constitution Alignment**: All tasks align with **Callistra-Agent Constitution v1.0.0** principles:
+- Setup tasks → Pragmatism (documented tech stack, simple MVP)
+- Code/Test tasks → Code Quality + Testing Standards (80%+ coverage, xUnit, code review)
+- API tasks → UX Consistency (RFC 7807 error responses, consistent messaging)
+- Performance → User & Performance Requirements (<500ms API p95, 1000 concurrent users)
 
-**Constitution Principles**: All tasks align with **Callistra-Agent Constitution v1.0.0**:
-- Setup tasks: **Pragmatism** (MVP-first, minimal complexity)
-- Code/Implementation tasks: **Code Quality** (80%+ coverage target, single-purpose functions)
-- Test tasks: **Testing Standards** (integration tests for all 3 HTTP endpoints)
-- Performance tasks: **User & Performance Requirements** (5s initiation, 3s playback, 10s DTMF timeout)
+## Task Format
+
+```
+- [ ] [TaskID] [P?] [Story?] Description with file path
+```
+
+- **[P]**: Parallelizable (different files, no blocking dependencies)
+- **[Story]**: User story label (US1, US2, US3) for phase 3+ tasks only
+- File paths follow plan.md structure: `src/CallistraAgent.Functions/`, `CallistraAgent/Tables/`, `tests/`
 
 ---
 
-## Phase 1: Setup (Shared Infrastructure)
+## Phase 1: Setup (Project Initialization)
 
-**Purpose**: Project initialization and basic structure
+**Purpose**: Create project structure and install dependencies
 
-- [ ] T001 Create Azure Functions project CallAgent.Functions with .NET 8 target framework at src/CallAgent.Functions/
-- [ ] T002 Add NuGet packages: Microsoft.NET.Sdk.Functions v4.x, Azure.Communication.CallAutomation v1.2.0+, Microsoft.EntityFrameworkCore v8.0, Microsoft.EntityFrameworkCore.SqlServer v8.0, Microsoft.EntityFrameworkCore.Design v8.0
-- [ ] T003 [P] Create solution file CallAgent.sln at repository root linking src/CallAgent.Functions/
-- [ ] T004 [P] Configure .editorconfig at repository root with C# code style rules per plan.md
-- [ ] T005 [P] Create host.json in src/CallAgent.Functions/ with function runtime configuration
-- [ ] T006 [P] Create local.settings.json template in src/CallAgent.Functions/ with ACS connection string, SQL connection string, and callback URL placeholders
-
-**Checkpoint**: Project structure ready for code implementation
+- [ ] T001 Create solution file `CallistraAgent.sln` at repository root
+- [ ] T002 [P] Create Azure Functions project `src/CallistraAgent.Functions/CallistraAgent.Functions.csproj` (.NET 9 isolated worker)
+- [ ] T003 [P] Create test project `tests/CallistraAgent.Functions.Tests/CallistraAgent.Functions.Tests.csproj` (xUnit)
+- [ ] T004 [P] Add NuGet package `Azure.Communication.CallAutomation` to Functions project
+- [ ] T005 [P] Add NuGet package `Microsoft.EntityFrameworkCore.SqlServer` version 8.x to Functions project
+- [ ] T006 [P] Add NuGet package `Microsoft.Azure.Functions.Worker.Extensions.Http` to Functions project
+- [ ] T007 [P] Add NuGet package `Microsoft.ApplicationInsights.WorkerService` to Functions project
+- [ ] T008 [P] Add NuGet package `xUnit` to test project
+- [ ] T009 [P] Add NuGet package `FluentAssertions` to test project
+- [ ] T010 [P] Add NuGet package `Moq` to test project
+- [ ] T011 Create `.editorconfig` at repository root with C# formatting rules
+- [ ] T012 Create `README.md` at repository root with setup instructions
+- [ ] T013 [P] Create `host.json` in Functions project with Azure Functions runtime configuration
+- [ ] T014 [P] Create `local.settings.json` in Functions project with dev configuration template (ACS connection string, SQL connection string)
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
+**Purpose**: Core infrastructure that MUST be complete before ANY user story implementation
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T007 Create Member entity class in src/CallAgent.Functions/Data/Entities/Member.cs with Id, FirstName, LastName, PhoneNumber, Program, Status, CreatedAt, UpdatedAt properties
-- [ ] T008 [P] Create CallSession entity class in src/CallAgent.Functions/Data/Entities/CallSession.cs with Id, MemberId, CallConnectionId, Status (enum: Initiated/Ringing/Connected/Completed/Disconnected/Failed/NoAnswer/VoicemailMessage), StartTime, EndTime, CreatedAt, UpdatedAt properties
-- [ ] T009 [P] Create CallResponse entity class in src/CallAgent.Functions/Data/Entities/CallResponse.cs with Id, CallSessionId, QuestionNumber, QuestionText, ResponseValue, RespondedAt properties
-- [ ] T010 Create CallAgentDbContext in src/CallAgent.Functions/Data/CallAgentDbContext.cs with DbSet properties for Member, CallSession, CallResponse, and OnModelCreating configuration
-- [ ] T011 Configure entity relationships and indexes in src/CallAgent.Functions/Data/CallAgentDbContext.cs: Member 1:N CallSession 1:N CallResponse, unique index on Member.PhoneNumber, index on CallSession.Status
-- [ ] T012 Create initial EF Core migration in src/CallAgent.Functions/Data/Migrations/ using dotnet ef migrations add InitialCreate
-- [ ] T013 [P] Create AcsOptions configuration class in src/CallAgent.Functions/Configuration/AcsOptions.cs with ConnectionString, CallbackUrl, SourcePhoneNumber properties
-- [ ] T014 [P] Create ICallService interface in src/CallAgent.Functions/Services/ICallService.cs with methods: InitiateCallAsync, HandleCallConnectedAsync, HandleDtmfResponseAsync, HandleCallDisconnectedAsync
-- [ ] T015 Register services in Program.cs or Startup.cs: DbContext with SQL connection string, CallAutomationClient with ACS connection string, ICallService scoped registration
+### Database Schema
 
-**Checkpoint**: Foundation ready - user story implementation can now begin in parallel
+- [ ] T015 Create SQL table script `CallistraAgent/Tables/Members.sql` with schema from data-model.md
+- [ ] T016 [P] Create SQL table script `CallistraAgent/Tables/CallSessions.sql` with schema from data-model.md
+- [ ] T017 [P] Create SQL table script `CallistraAgent/Tables/CallResponses.sql` with schema from data-model.md
+- [ ] T018 Deploy database schema to local SQL Server 2025 using sqlpackage
+- [ ] T019 Insert test member data for local development (3 test members with valid phone numbers)
+
+### Entity Framework Core Setup
+
+- [ ] T020 Create `Member` entity class in `src/CallistraAgent.Functions/Models/Member.cs` with properties from data-model.md
+- [ ] T021 [P] Create `CallSession` entity class in `src/CallistraAgent.Functions/Models/CallSession.cs` with properties from data-model.md
+- [ ] T022 [P] Create `CallResponse` entity class in `src/CallistraAgent.Functions/Models/CallResponse.cs` with properties from data-model.md
+- [ ] T023 Create `CallStatus` enum in `src/CallistraAgent.Functions/Models/CallStatus.cs` with values: Initiated, Ringing, Connected, Completed, Disconnected, Failed, NoAnswer, VoicemailMessage
+- [ ] T024 Create `CallistraAgentDbContext` in `src/CallistraAgent.Functions/Data/CallistraAgentDbContext.cs` with entity configurations from data-model.md
+- [ ] T025 Configure DbContext indexes and constraints per data-model.md specifications
+- [ ] T026 Create EF Core migration `InitialCreate` using `dotnet ef migrations add`
+- [ ] T027 Apply migration to local database using `dotnet ef database update`
+
+### Configuration & Dependency Injection
+
+- [ ] T028 Create `AzureCommunicationServicesOptions` class in `src/CallistraAgent.Functions/Configuration/AzureCommunicationServicesOptions.cs`
+- [ ] T029 [P] Create `DatabaseOptions` class in `src/CallistraAgent.Functions/Configuration/DatabaseOptions.cs`
+- [ ] T030 Create `Program.cs` in Functions project with DI container setup (DbContext, CallAutomationClient, services)
+- [ ] T031 Configure connection pooling and retry policies for DbContext in Program.cs
+- [ ] T032 Register CallAutomationClient as singleton in DI container
+- [ ] T033 Configure Application Insights telemetry worker service in Program.cs
+
+### Repository Pattern
+
+- [ ] T034 Create `IMemberRepository` interface in `src/CallistraAgent.Functions/Data/Repositories/IMemberRepository.cs`
+- [ ] T035 [P] Create `ICallSessionRepository` interface in `src/CallistraAgent.Functions/Data/Repositories/ICallSessionRepository.cs`
+- [ ] T036 Implement `MemberRepository` in `src/CallistraAgent.Functions/Data/Repositories/MemberRepository.cs` with async CRUD methods
+- [ ] T037 [P] Implement `CallSessionRepository` in `src/CallistraAgent.Functions/Data/Repositories/CallSessionRepository.cs` with async CRUD methods
+- [ ] T038 Register repositories as scoped services in Program.cs DI container
+
+### DTOs for API Contracts
+
+- [ ] T039 Create `InitiateCallRequest` DTO in `src/CallistraAgent.Functions/Models/DTOs/InitiateCallRequest.cs` (empty body, memberId from route)
+- [ ] T040 [P] Create `InitiateCallResponse` DTO in `src/CallistraAgent.Functions/Models/DTOs/InitiateCallResponse.cs` per contracts/initiate-call.yaml
+- [ ] T041 [P] Create `CallEventPayload` DTO in `src/CallistraAgent.Functions/Models/DTOs/CallEventPayload.cs` for CloudEvent parsing
+- [ ] T042 [P] Create `CallStatusResponse` DTO in `src/CallistraAgent.Functions/Models/DTOs/CallStatusResponse.cs` per contracts/call-status.yaml
+
+### Constants
+
+- [ ] T043 Create `HealthcareQuestions` constants class in `src/CallistraAgent.Functions/Constants/HealthcareQuestions.cs` with 3 question texts from spec.md
+- [ ] T044 [P] Create `VoicemailMessages` constants class in `src/CallistraAgent.Functions/Constants/VoicemailMessages.cs` with person-detection prompt and callback message
+
+**Checkpoint**: ✅ Foundation complete - user story implementation can begin
 
 ---
 
 ## Phase 3: User Story 1 - Make Outbound Healthcare Call (Priority: P1) 🎯 MVP
 
-**Goal**: Healthcare administrators can initiate automated calls to enrolled program members
+**Goal**: Initiate outbound calls to members and handle call connection/failure events
 
-**Independent Test**: Provide a member phone number, trigger call initiation API, verify phone rings and CallSession record created
+**Independent Test**: Provide member phone number, trigger call initiation, verify phone rings and CallSession record created
 
-### Tests for User Story 1
+### Tests for User Story 1 (Constitution Requirement: Integration tests for public APIs)
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+- [ ] T045 [P] [US1] Create test fixture `TestWebApplicationFactory` in `tests/CallistraAgent.Functions.Tests/Fixtures/TestWebApplicationFactory.cs` for in-memory Functions host
+- [ ] T046 [P] [US1] Integration test for InitiateCall endpoint - success case in `tests/CallistraAgent.Functions.Tests/Integration/InitiateCallIntegrationTests.cs`
+- [ ] T047 [P] [US1] Integration test for InitiateCall endpoint - member not found (404) in InitiateCallIntegrationTests.cs
+- [ ] T048 [P] [US1] Integration test for InitiateCall endpoint - member already has active call (409) in InitiateCallIntegrationTests.cs
+- [ ] T049 [P] [US1] Integration test for CallConnected webhook event in `tests/CallistraAgent.Functions.Tests/Integration/CallWebhookIntegrationTests.cs`
+- [ ] T050 [P] [US1] Integration test for CallDisconnected webhook event in CallWebhookIntegrationTests.cs
 
-- [ ] T016 [P] [US1] Create integration test CallInitiationTests.cs in tests/CallAgent.Functions.Tests/Integration/ testing POST /api/calls/initiate/{memberId} with valid member returns 202 Accepted with callSessionId
-- [ ] T017 [P] [US1] Add test case in CallInitiationTests.cs for invalid member ID returns 404 Not Found with ProblemDetails
-- [ ] T018 [P] [US1] Add test case in CallInitiationTests.cs for member with invalid phone number returns 400 Bad Request
-- [ ] T019 [P] [US1] Add test case in CallInitiationTests.cs verifying CallSession record persisted to database with Status=Initiated
+### Service Layer for User Story 1
 
-### Implementation for User Story 1
+- [ ] T051 [P] [US1] Create `ICallService` interface in `src/CallistraAgent.Functions/Services/ICallService.cs` with InitiateCallAsync method
+- [ ] T052 [US1] Implement `CallService` in `src/CallistraAgent.Functions/Services/CallService.cs` with call initiation logic (depends on T034, T035)
+- [ ] T053 [US1] Add method to CallService for handling CallConnected event (update CallSession status to Connected)
+- [ ] T054 [US1] Add method to CallService for handling CallDisconnected event (update CallSession status to Disconnected, set EndTime)
+- [ ] T055 [US1] Add method to CallService for handling call failure scenarios (update status to Failed)
+- [ ] T056 [US1] Add method to CallService for handling NoAnswer timeout (update status to NoAnswer, set EndTime)
+- [ ] T057 [US1] Register CallService as scoped service in Program.cs DI container
 
-- [ ] T020 [US1] Implement CallInitiation.cs Azure Function in src/CallAgent.Functions/Functions/ with HTTP POST trigger on route "api/calls/initiate/{memberId}"
-- [ ] T021 [US1] Add member lookup validation in CallInitiation.cs: verify member exists, Status=Active, PhoneNumber valid E.164 format
-- [ ] T022 [US1] Create CallSession record in CallInitiation.cs with Status=Initiated, StartTime=now, MemberId reference
-- [ ] T023 [US1] Implement CallService.InitiateCallAsync in src/CallAgent.Functions/Services/CallService.cs using CallAutomationClient.CreateCall with member PhoneNumber, callback URL from AcsOptions, source phone number
-- [ ] T024 [US1] Update CallSession with CallConnectionId returned from ACS CreateCall response in CallService.InitiateCallAsync
-- [ ] T025 [US1] Add error handling in CallInitiation.cs: catch ACS exceptions, update CallSession Status=Failed, return 500 with ProblemDetails
-- [ ] T026 [US1] Return 202 Accepted response from CallInitiation.cs with callSessionId, memberId, status, startTime, callbackUrl
+### API Endpoints for User Story 1
 
-**Checkpoint**: User Story 1 complete - can manually initiate calls that ring target phone numbers
+- [ ] T058 [US1] Create `InitiateCallFunction` in `src/CallistraAgent.Functions/Functions/InitiateCallFunction.cs` with POST /api/calls/initiate/{memberId} endpoint
+- [ ] T059 [US1] Implement request validation in InitiateCallFunction (memberId > 0, member exists, no active call)
+- [ ] T060 [US1] Implement error handling in InitiateCallFunction with RFC 7807 Problem Details responses
+- [ ] T061 [US1] Create `CallEventWebhookFunction` in `src/CallistraAgent.Functions/Functions/CallEventWebhookFunction.cs` with POST /api/calls/events endpoint
+- [ ] T062 [US1] Implement CloudEvent parsing in CallEventWebhookFunction using CallAutomationEventParser
+- [ ] T063 [US1] Route CallConnected event to CallService.HandleCallConnected method
+- [ ] T064 [US1] Route CallDisconnected event to CallService.HandleCallDisconnected method
+- [ ] T065 [US1] Add idempotency handling in CallEventWebhookFunction using event ID deduplication
+
+### Unit Tests for User Story 1
+
+- [ ] T066 [P] [US1] Unit test for CallService.InitiateCallAsync - success case in `tests/CallistraAgent.Functions.Tests/Unit/Services/CallServiceTests.cs`
+- [ ] T067 [P] [US1] Unit test for CallService.InitiateCallAsync - member not found in CallServiceTests.cs
+- [ ] T068 [P] [US1] Unit test for CallService.InitiateCallAsync - ACS service unavailable in CallServiceTests.cs
+- [ ] T069 [P] [US1] Unit test for CallService.HandleCallConnected in CallServiceTests.cs
+- [ ] T070 [P] [US1] Unit test for CallService.HandleCallDisconnected in CallServiceTests.cs
+- [ ] T071 [P] [US1] Unit test for InitiateCallFunction - validation failures in `tests/CallistraAgent.Functions.Tests/Unit/Functions/InitiateCallFunctionTests.cs`
+
+**Story 1 Deliverable**: ✅ System can initiate calls and track connection status
 
 ---
 
 ## Phase 4: User Story 2 - Ask Healthcare Questions (Priority: P2)
 
-**Goal**: Once call connects, system plays pre-defined healthcare questions using text-to-speech
+**Goal**: Play person-detection prompt and 3 healthcare questions using text-to-speech after call connects
 
-**Independent Test**: Establish a call connection and verify text-to-speech plays person-detection prompt followed by healthcare questions
+**Independent Test**: Establish call and verify TTS audio plays first question
 
 ### Tests for User Story 2
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+- [ ] T072 [P] [US2] Integration test for playing person-detection prompt on CallConnected event in CallWebhookIntegrationTests.cs
+- [ ] T073 [P] [US2] Integration test for playing first question after person confirmation in CallWebhookIntegrationTests.cs
+- [ ] T074 [P] [US2] Integration test for question progression (Q1 → Q2 → Q3) in CallWebhookIntegrationTests.cs
 
-- [ ] T027 [P] [US2] Create integration test CallEventsTests.cs in tests/CallAgent.Functions.Tests/Integration/ testing POST /api/calls/events with CallConnected CloudEvent triggers person-detection prompt
-- [ ] T028 [P] [US2] Add test case in CallEventsTests.cs verifying person-detection DTMF timeout (5s no response) triggers generic voicemail message and marks session VoicemailMessage
-- [ ] T029 [P] [US2] Add test case in CallEventsTests.cs verifying DTMF response (pressing 1) to person-detection proceeds with healthcare question 1
-- [ ] T030 [P] [US2] Add test case in CallEventsTests.cs verifying healthcare questions play in sequence after person confirmation
+### Service Layer for User Story 2
 
-### Implementation for User Story 2
+- [ ] T075 [P] [US2] Create `IQuestionService` interface in `src/CallistraAgent.Functions/Services/IQuestionService.cs` with PlayQuestion method
+- [ ] T076 [US2] Implement `QuestionService` in `src/CallistraAgent.Functions/Services/QuestionService.cs` with TTS playback logic
+- [ ] T077 [US2] Add method to QuestionService for playing person-detection prompt with DTMF recognition options
+- [ ] T078 [US2] Add method to QuestionService for playing healthcare question with DTMF recognition options (10s timeout)
+- [ ] T079 [US2] Add method to QuestionService for handling invalid DTMF (re-prompt logic, max 2 retries)
+- [ ] T080 [US2] Add method to QuestionService for handling DTMF timeout (re-prompt once, then skip)
+- [ ] T081 [US2] Register QuestionService as scoped service in Program.cs DI container
 
-- [ ] T031 [US2] Implement CallEvents.cs Azure Function in src/CallAgent.Functions/Functions/ with HTTP POST trigger on route "api/calls/events"
-- [ ] T032 [US2] Add CloudEvent deserialization logic in CallEvents.cs to parse event type (CallConnected, RecognizeCompleted, PlayCompleted, CallDisconnected)
-- [ ] T033 [US2] Implement CallService.HandleCallConnectedAsync in src/CallAgent.Functions/Services/CallService.cs: update CallSession Status=Connected, play person-detection prompt "Press 1 if you can hear this message" with 5s DTMF timeout
-- [ ] T034 [US2] Add DTMF recognition handling in CallService: if no response to person-detection within 5s, play generic callback message "Hello, this is [Organization] calling about your healthcare enrollment. Please call us back at [phone number]. Thank you.", then hang up
-- [ ] T035 [US2] Update CallSession Status=VoicemailMessage in CallService when voicemail message played
-- [ ] T036 [US2] Add person confirmation logic in CallService: if DTMF "1" received to person-detection, play healthcare question 1 "Can you confirm you are enrolled in [Program]? Press 1 for yes, 2 for no." with 10s timeout
-- [ ] T037 [US2] Create question progression logic in CallService: after RecognizeCompleted event for question N, play question N+1 (max 3 questions total)
-- [ ] T038 [US2] Add re-prompt logic in CallService: if no DTMF response within 10s, re-play same question once before moving to next
-- [ ] T039 [US2] Return 200 OK from CallEvents.cs after processing each event
+### Voicemail Detection Logic
 
-**Checkpoint**: User Story 2 complete - calls play person-detection prompt, handle voicemail, and ask healthcare questions
+- [ ] T082 [US2] Add method to CallService for handling person-detection timeout (no DTMF response within 5s)
+- [ ] T083 [US2] Add method to QuestionService for playing voicemail callback message (no PHI)
+- [ ] T084 [US2] Update CallService to mark CallSession as VoicemailMessage status and hang up after callback message
+
+### Question Flow State Management
+
+- [ ] T085 [US2] Create `CallSessionState` in-memory cache class in `src/CallistraAgent.Functions/Services/CallSessionState.cs` to track current question number
+- [ ] T086 [US2] Add method to CallService to initialize call state on CallConnected event (current question = 0 for person detection)
+- [ ] T087 [US2] Add method to CallService to progress to next question after DTMF response received
+- [ ] T088 [US2] Update CallEventWebhookFunction to route PlayCompleted event to trigger next DTMF recognition
+
+### Unit Tests for User Story 2
+
+- [ ] T089 [P] [US2] Unit test for QuestionService.PlayPersonDetectionPrompt in `tests/CallistraAgent.Functions.Tests/Unit/Services/QuestionServiceTests.cs`
+- [ ] T090 [P] [US2] Unit test for QuestionService.PlayHealthcareQuestion with question number 1-3 in QuestionServiceTests.cs
+- [ ] T091 [P] [US2] Unit test for QuestionService.HandleInvalidDtmf - retry logic in QuestionServiceTests.cs
+- [ ] T092 [P] [US2] Unit test for CallService.HandlePersonDetectionTimeout - voicemail flow in CallServiceTests.cs
+- [ ] T093 [P] [US2] Unit test for call state progression through questions in CallServiceTests.cs
+
+**Story 2 Deliverable**: ✅ System asks questions and detects voicemail
 
 ---
 
 ## Phase 5: User Story 3 - Capture Member Responses (Priority: P3)
 
-**Goal**: System records member DTMF answers (1=yes, 2=no) to questions for healthcare coordinator analysis
+**Goal**: Capture DTMF responses and save to database with CallResponse records
 
-**Independent Test**: Simulate DTMF input during call and verify responses saved to database with correct call session association
+**Independent Test**: Simulate DTMF input and verify responses saved to database with correct associations
 
 ### Tests for User Story 3
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+- [ ] T094 [P] [US3] Integration test for RecognizeCompleted webhook event with DTMF response in CallWebhookIntegrationTests.cs
+- [ ] T095 [P] [US3] Integration test for saving CallResponse record after DTMF capture in CallWebhookIntegrationTests.cs
+- [ ] T096 [P] [US3] Integration test for completing call after all 3 questions answered in CallWebhookIntegrationTests.cs
+- [ ] T097 [P] [US3] Database integration test for CallResponse foreign key constraints in `tests/CallistraAgent.Functions.Tests/Integration/DatabaseIntegrationTests.cs`
 
-- [ ] T040 [P] [US3] Add test case in CallEventsTests.cs verifying RecognizeCompleted event with DTMF "1" creates CallResponse record with ResponseValue=1
-- [ ] T041 [P] [US3] Add test case in CallEventsTests.cs verifying RecognizeCompleted event with DTMF "2" creates CallResponse record with ResponseValue=2
-- [ ] T042 [P] [US3] Add test case in CallEventsTests.cs verifying all 3 responses saved after completing question flow
-- [ ] T043 [P] [US3] Add test case in CallEventsTests.cs verifying CallSession Status=Completed after final response captured
-- [ ] T044 [P] [US3] Create integration test CallStatusTests.cs in tests/CallAgent.Functions.Tests/Integration/ testing GET /api/calls/status/{callConnectionId} returns session with responses array
+### Service Layer for User Story 3
 
-### Implementation for User Story 3
+- [ ] T098 [P] [US3] Create `ICallResponseRepository` interface in `src/CallistraAgent.Functions/Data/Repositories/ICallResponseRepository.cs`
+- [ ] T099 [US3] Implement `CallResponseRepository` in `src/CallistraAgent.Functions/Data/Repositories/CallResponseRepository.cs` with async save method
+- [ ] T100 [US3] Register CallResponseRepository as scoped service in Program.cs DI container
+- [ ] T101 [US3] Add method to CallService for handling RecognizeCompleted event (extract DTMF tones)
+- [ ] T102 [US3] Add method to CallService for saving CallResponse record with question number, text, and response value
+- [ ] T103 [US3] Add method to CallService for checking if all questions answered (progress to Completed status)
+- [ ] T104 [US3] Update CallEventWebhookFunction to route RecognizeCompleted event to CallService
 
-- [ ] T045 [US3] Implement CallService.HandleDtmfResponseAsync in src/CallAgent.Functions/Services/CallService.cs to process RecognizeCompleted events
-- [ ] T046 [US3] Extract DTMF tone from RecognizeCompleted event data in HandleDtmfResponseAsync (expecting "1" or "2")
-- [ ] T047 [US3] Create CallResponse entity record in HandleDtmfResponseAsync with CallSessionId, QuestionNumber (1-3), QuestionText, ResponseValue (1 or 2), RespondedAt=now
-- [ ] T048 [US3] Persist CallResponse to database via DbContext.SaveChangesAsync in HandleDtmfResponseAsync
-- [ ] T049 [US3] Check if all 3 questions answered in HandleDtmfResponseAsync: if yes, update CallSession Status=Completed and hang up call
-- [ ] T050 [US3] Implement CallStatus.cs Azure Function in src/CallAgent.Functions/Functions/ with HTTP GET trigger on route "api/calls/status/{callConnectionId}"
-- [ ] T051 [US3] Query CallSession by CallConnectionId in CallStatus.cs including related Member and CallResponses (eager loading)
-- [ ] T052 [US3] Return 200 OK from CallStatus.cs with JSON response: callSessionId, memberId, memberName, status, startTime, endTime, responses array (questionNumber, questionText, responseValue)
-- [ ] T053 [US3] Add 404 Not Found handling in CallStatus.cs if CallConnectionId not found
-- [ ] T054 [US3] Implement CallService.HandleCallDisconnectedAsync to update CallSession Status=Disconnected when member hangs up mid-call
+### Call Completion Logic
 
-**Checkpoint**: User Story 3 complete - full call flow works end-to-end with response capture and status querying
+- [ ] T105 [US3] Add method to CallService to mark CallSession as Completed after final question answered
+- [ ] T106 [US3] Add method to CallService to hang up call automatically after completion
+- [ ] T107 [US3] Update CallService to handle partial responses on mid-call disconnect (save what was captured)
 
----
+### Unit Tests for User Story 3
 
-## Phase 6: Polish & Cross-Cutting Concerns
+- [ ] T108 [P] [US3] Unit test for CallService.HandleRecognizeCompleted - valid DTMF response in CallServiceTests.cs
+- [ ] T109 [P] [US3] Unit test for CallService.SaveCallResponse - database persistence in CallServiceTests.cs
+- [ ] T110 [P] [US3] Unit test for CallService call completion logic - all questions answered in CallServiceTests.cs
+- [ ] T111 [P] [US3] Unit test for partial response handling on disconnect in CallServiceTests.cs
 
-**Purpose**: Improvements that affect multiple user stories
-
-- [ ] T055 [P] Add XML documentation comments to all public methods in CallService.cs, CallInitiation.cs, CallEvents.cs, CallStatus.cs
-- [ ] T056 [P] Create unit tests CallServiceTests.cs in tests/CallAgent.Functions.Tests/Unit/ with mocked CallAutomationClient covering InitiateCallAsync, HandleCallConnectedAsync, HandleDtmfResponseAsync, HandleCallDisconnectedAsync
-- [ ] T057 Add structured logging using ILogger in all Functions and Services with log levels: Information (call initiated, connected, completed), Warning (timeouts, retries), Error (ACS failures, database errors)
-- [ ] T058 [P] Update README.md at repository root with architecture diagram, setup instructions reference to quickstart.md, API endpoint documentation
-- [ ] T059 Run quickstart.md validation: provision Azure resources, apply database migration, test all 3 endpoints with curl commands
-- [ ] T060 [P] Add .gitignore entries for local.settings.json, bin/, obj/, .vs/
+**Story 3 Deliverable**: ✅ System captures and persists all responses
 
 ---
 
-## Dependencies & Execution Order
+## Phase 6: End-to-End Testing (Constitution Requirement)
 
-### Phase Dependencies
+**Purpose**: Validate critical user path (US1 → US2 → US3) works end-to-end
 
-- **Setup (Phase 1)**: No dependencies - can start immediately
-- **Foundational (Phase 2)**: Depends on Setup (Phase 1) completion - BLOCKS all user stories
-- **User Stories (Phase 3-5)**: All depend on Foundational (Phase 2) completion
-  - User Story 1 (Phase 3): Can start after Foundational - No dependencies on other stories
-  - User Story 2 (Phase 4): Can start after Foundational - Requires US1 for call initiation but independently testable with mocked events
-  - User Story 3 (Phase 5): Can start after Foundational - Requires US1/US2 for full flow but independently testable with mocked events
-- **Polish (Phase 6)**: Depends on all user stories (Phase 3-5) completion
+- [ ] T112 Create E2E test fixture with mocked Azure Communication Services client in `tests/CallistraAgent.Functions.Tests/EndToEnd/FullCallFlowTests.cs`
+- [ ] T113 E2E test: Initiate call → CallConnected → Person detection → Q1 → Q2 → Q3 → Completed in FullCallFlowTests.cs
+- [ ] T114 E2E test: Initiate call → CallConnected → Person detection timeout → Voicemail message → VoicemailMessage status in FullCallFlowTests.cs
+- [ ] T115 E2E test: Initiate call → CallConnected → Q1 answered → Mid-call disconnect → Partial responses saved in FullCallFlowTests.cs
 
-### Recommended Execution Strategy
+---
 
-**Sequential (Single Developer)**:
-1. Complete Setup (T001-T006)
-2. Complete Foundational (T007-T015)
-3. Implement User Story 1 fully (T016-T026) - delivers basic call initiation
-4. Implement User Story 2 fully (T027-T039) - adds interactive questions
-5. Implement User Story 3 fully (T040-T054) - adds response capture
-6. Complete Polish tasks (T055-T060)
+## Phase 7: Polish & Cross-Cutting Concerns
 
-**Parallel (Team of 2-3)**:
-1. All team members: Complete Setup (T001-T006) together
-2. All team members: Complete Foundational (T007-T015) together
-3. Split user stories after Foundational complete:
-   - Developer A: User Story 1 (T016-T026)
-   - Developer B: User Story 2 tests (T027-T030), then wait for US1 CallService interface
-   - Developer C: User Story 3 tests (T040-T044)
-4. After US1 complete: Developer B implements US2 (T031-T039), Developer C implements US3 (T045-T054)
-5. All: Polish tasks in parallel (T055-T060)
+**Purpose**: Non-functional requirements and production readiness
 
-### Task Dependencies Within Each Phase
+### Error Handling & Logging
 
-**Phase 1 (Setup)**: T001 → T002 → {T003, T004, T005, T006} in parallel
+- [ ] T116 [P] Add structured logging to all service methods using ILogger
+- [ ] T117 [P] Add Application Insights custom metrics for call duration, completion rate, DTMF capture rate
+- [ ] T118 [P] Implement global exception handler middleware in Functions project
+- [ ] T119 [P] Add retry logic for transient ACS failures in CallService
 
-**Phase 2 (Foundational)**: {T007, T008, T009} in parallel → T010 → T011 → T012, then {T013, T014} in parallel → T015
+### Configuration & Security
 
-**Phase 3 (User Story 1)**: {T016, T017, T018, T019} tests in parallel (all MUST fail) → T020 → T021 → T022 → T023 → T024 → T025 → T026
+- [ ] T120 [P] Create Azure Key Vault configuration provider for production secrets
+- [ ] T121 [P] Document function key rotation process in README.md
+- [ ] T122 [P] Add managed identity configuration for ACS and SQL Database in production
 
-**Phase 4 (User Story 2)**: {T027, T028, T029, T030} tests in parallel (all MUST fail) → T031 → T032 → T033 → T034 → T035 → T036 → T037 → T038 → T039
+### Health Check & Monitoring
 
-**Phase 5 (User Story 3)**: {T040, T041, T042, T043, T044} tests in parallel (all MUST fail) → T045 → T046 → T047 → T048 → T049 → {T050, T054} in parallel → T051 → T052 → T053
+- [ ] T123 Create `HealthCheckFunction` in `src/CallistraAgent.Functions/Functions/HealthCheckFunction.cs` with GET /api/health endpoint
+- [ ] T124 Add database connectivity check to HealthCheckFunction
+- [ ] T125 Add ACS connectivity check to HealthCheckFunction
 
-**Phase 6 (Polish)**: {T055, T056, T058, T060} in parallel → T057 → T059
+### Documentation
 
-### Parallel Opportunities Summary
+- [ ] T126 [P] Document API endpoints in README.md with curl examples
+- [ ] T127 [P] Add inline XML comments to all public APIs per code quality principle
+- [ ] T128 [P] Create deployment guide for Azure environment in `docs/deployment.md`
 
-- **Setup**: 4 tasks can run in parallel (T003, T004, T005, T006)
-- **Foundational**: 5 tasks can run in parallel (T007, T008, T009, then T013, T014)
-- **User Story 1**: 4 test tasks can run in parallel (T016-T019)
-- **User Story 2**: 4 test tasks can run in parallel (T027-T030)
-- **User Story 3**: 5 test tasks can run in parallel (T040-T044), then 2 implementation tasks (T050, T054)
-- **Polish**: 4 tasks can run in parallel (T055, T056, T058, T060)
+### Load Testing (Constitution Requirement: 1000 concurrent users)
 
-**Total Parallelizable Tasks**: 22 of 60 tasks marked [P] (37%)
+- [ ] T129 Create Azure Load Testing configuration in `tests/CallistraAgent.LoadTests/InitiateCallLoadTest.jmx`
+- [ ] T130 Run load test with 1000 concurrent InitiateCall requests and verify p95 latency <400ms
+- [ ] T131 Analyze load test results and document in `docs/performance-report.md`
 
 ---
 
 ## Implementation Strategy
 
-**MVP Scope (Day 1)**: Phase 1 + Phase 2 + Phase 3 (User Story 1) = **26 tasks** → Delivers: Basic call initiation to member phone numbers
+### MVP Scope (Minimum Viable Product)
 
-**MVP+ Scope (Day 2)**: Add Phase 4 (User Story 2) = **+13 tasks** → Delivers: Interactive healthcare questions with person-detection and voicemail handling
+**MVP = User Story 1 ONLY**: Initiate calls and track connection status
 
-**Full Feature (Day 3)**: Add Phase 5 (User Story 3) + Phase 6 (Polish) = **+21 tasks** → Delivers: Complete response capture, status querying, production-ready code
+Rationale: Demonstrates core telephony integration works. Can validate Azure Communication Services setup before building interactive features.
 
-**Estimated Time**:
-- Setup: 30 minutes (6 tasks)
-- Foundational: 1.5 hours (9 tasks)
-- User Story 1: 2 hours (11 tasks including tests)
-- User Story 2: 2 hours (13 tasks including tests)
-- User Story 3: 2 hours (15 tasks including tests)
-- Polish: 1 hour (6 tasks)
+**MVP Tasks**: T001-T071 (Setup + Foundation + Story 1)
+**Estimated Effort**: 2-3 days for experienced .NET developer
 
-**Total**: ~9 hours for complete feature (fits within 1-2 day sprint with testing)
+### Incremental Delivery
+
+1. **Phase 1-2**: Setup + Foundation (T001-T044) - ~1 day
+2. **Phase 3**: User Story 1 (T045-T071) - ~1 day
+3. **Phase 4**: User Story 2 (T072-T093) - ~1 day  
+4. **Phase 5**: User Story 3 (T094-T111) - ~1 day
+5. **Phase 6-7**: Testing + Polish (T112-T131) - ~1 day
+
+**Total Estimated Effort**: 5-6 days for full feature
+
+### Parallel Execution Opportunities
+
+Tasks marked **[P]** can be executed in parallel within each phase:
+
+**Phase 1 (Setup)**: T002, T003, T004-T010, T013-T014 can run concurrently (9 parallel tasks)
+
+**Phase 2 (Foundation)**: 
+- T016-T017 (SQL tables) - 2 parallel
+- T021-T022 (entities) - 2 parallel
+- T028-T029 (config classes) - 2 parallel
+- T034-T035 (repository interfaces) - 2 parallel
+- T036-T037 (repository implementations) - 2 parallel
+- T039-T042 (DTOs) - 4 parallel
+- T043-T044 (constants) - 2 parallel
+
+**Phase 3 (User Story 1)**:
+- T045-T050 (tests) - 6 parallel
+- T051 (interface) can start early
+- T066-T071 (unit tests) - 6 parallel
+
+**Phase 4-5**: Similar parallelization for tests and independent components
+
+**Phase 7 (Polish)**: T116-T122, T126-T128 can run concurrently (9 parallel tasks)
+
+### Dependencies Summary
+
+**Critical Path** (blocking dependencies):
+1. T001-T014 (Setup) → T015-T044 (Foundation) → T052-T065 (Story 1 Implementation) → T076-T088 (Story 2 Implementation) → T099-T107 (Story 3 Implementation)
+
+**Story Independence**:
+- Story 1 can be deployed and tested independently (MVP)
+- Story 2 depends on Story 1 (needs CallConnected event handling)
+- Story 3 depends on Story 2 (needs question flow to capture responses)
+
+**User Story Completion Order**:
+1. US1: Make Outbound Healthcare Call (foundation for all others)
+2. US2: Ask Healthcare Questions (requires US1 call connection)
+3. US3: Capture Member Responses (requires US2 question flow)
 
 ---
 
@@ -239,15 +353,52 @@
 
 Before marking feature complete, verify:
 
-- [ ] All 60 tasks completed and checked off
-- [ ] All integration tests pass (CallInitiationTests, CallEventsTests, CallStatusTests)
-- [ ] Unit tests for CallService pass with >80% coverage
-- [ ] Manual test following quickstart.md succeeds: initiate call → phone rings → person-detection → healthcare questions → responses captured → status query returns data
-- [ ] Constitution principles validated: Pragmatism (MVP delivered), Code Quality (80%+ coverage, documented), Testing Standards (integration tests for all endpoints), Performance (5s initiation, 3s playback, 10s DTMF)
-- [ ] All 3 HTTP endpoints documented in README.md
-- [ ] Database migration applied successfully
-- [ ] Azure Communication Services integration tested with real phone number
+- [ ] All 131 tasks completed and checked off
+- [ ] Constitution principles validated:
+  - [ ] 80%+ test coverage achieved (run `dotnet test --collect:"XPlat Code Coverage"`)
+  - [ ] All public APIs have integration tests
+  - [ ] E2E test passes for critical user path
+  - [ ] Load test passes with 1000 concurrent users, p95 <400ms
+  - [ ] Code review completed for all PRs
+  - [ ] Linting passes with no warnings
+- [ ] All 3 user stories independently testable and passing
+- [ ] Success criteria from spec.md met:
+  - [ ] SC-001: Call rings within 5 seconds
+  - [ ] SC-002: First question plays within 3 seconds of connection
+  - [ ] SC-003: DTMF captured within 2 seconds
+  - [ ] SC-004: Full call completes in <3 minutes
+  - [ ] SC-005: 100% call sessions persisted
+  - [ ] SC-006: 100% responses correctly associated
+  - [ ] SC-007: 5 concurrent calls handled without degradation
+  - [ ] SC-008: System error rate <5%
+- [ ] Edge cases from spec.md handled:
+  - [ ] No Answer (30s timeout)
+  - [ ] Voicemail Detection (person detection prompt)
+  - [ ] Mid-Call Hangup (partial responses saved)
+  - [ ] Invalid DTMF Input (re-prompt logic)
+  - [ ] Response Timeout (skip question after retry)
+- [ ] Documentation complete:
+  - [ ] README.md with setup instructions
+  - [ ] API documentation with examples
+  - [ ] Deployment guide
+  - [ ] Inline code comments on public APIs
 
 ---
 
-**Tasks Complete**: Ready for implementation. Follow tasks sequentially or assign to team members based on parallel opportunities identified above.
+## Task Generation Metadata
+
+**Generated by**: `/speckit.tasks` command  
+**Based on**:
+- [spec.md](spec.md) - User stories US1, US2, US3
+- [plan.md](plan.md) - Project structure and tech stack
+- [data-model.md](data-model.md) - Entities: Member, CallSession, CallResponse
+- [contracts/](contracts/) - API endpoints: InitiateCall, CallEvents, CallStatus
+- [research.md](research.md) - Technology decisions
+
+**Task Count**: 131 tasks (14 setup, 30 foundation, 27 US1, 22 US2, 18 US3, 4 E2E, 16 polish)
+
+**Estimated Total Effort**: 5-6 days for experienced .NET developer
+
+**Parallel Opportunities**: 50+ tasks can run in parallel within phases
+
+**Ready for implementation**: ✅ All tasks have clear descriptions and file paths

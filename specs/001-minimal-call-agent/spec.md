@@ -15,6 +15,11 @@
 - Q: Call Initiation Trigger Method → A: HTTP API endpoint
 - Q: Call Session Status Values → A: Standard telephony status model (Initiated, Ringing, Connected, Completed, Disconnected, Failed, NoAnswer)
 - Q: Voicemail Handling → A: Use person-detection prompt; if voicemail detected, leave generic callback message (no PHI)
+- Q: What should the Azure SQL Database be named? → A: CallistraAgent
+- Q: What are the exact 3 healthcare questions to be asked during calls? → A: "Press 1 to confirm your identity", "Press 1 if you are aware of your enrollment in [Program]", "Press 1 if you need assistance with your program"
+- Q: What database platform should host the CallistraAgent database? → A: Azure SQL Server (production); SQL Server 2025 (local testing)
+- Q: What data access technology should the application use? → A: Entity Framework Core 8+
+- Q: What .NET runtime version should the Azure Functions use? → A: .NET 9
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -111,7 +116,7 @@ Based on **Callistra-Agent Constitution v1.0.0**:
 - **FR-011**: System MUST persist all call sessions and responses to the database for healthcare coordinator review
 - **FR-012**: System MUST support a minimum of 3 healthcare questions per call flow
 - **FR-013**: System MUST use a configurable callback URL for Azure Communication Services webhook events
-- **FR-014**: System MUST use standard healthcare enrollment verification questions covering: (1) identity confirmation, (2) program enrollment awareness, (3) assistance needs assessment
+- **FR-014**: System MUST ask the following 3 questions in order: (1) "Press 1 to confirm your identity", (2) "Press 1 if you are aware of your enrollment in [Program]" (with [Program] replaced by member's program name), (3) "Press 1 if you need assistance with your program"
 - **FR-015**: System MUST play person-detection prompt ("Press 1 if you can hear this message") when call connects and wait 5 seconds for DTMF response
 - **FR-016**: System MUST play generic callback message containing no PHI if no DTMF response received to person-detection prompt, then mark call as "VoicemailMessage" and hang up
 - **FR-017**: System MUST proceed with healthcare questions only after receiving DTMF confirmation (pressing 1) to person-detection prompt
@@ -140,6 +145,10 @@ Based on **Callistra-Agent Constitution v1.0.0**:
 - Members have valid phone numbers capable of receiving calls
 - Members understand English and can use phone keypads
 - Azure Communication Services phone number is already provisioned
+- Azure SQL Database is named `CallistraAgent`
+- Database platform is Azure SQL Server (production) with SQL Server 2025 for local development/testing
+- Data access layer uses Entity Framework Core 8+ for ORM and migrations
+- Azure Functions runtime is .NET 9 (LTS)
 - Healthcare questions are predefined and do not require dynamic customization per member
 - DTMF input is sufficient for yes/no responses (no speech recognition required for MVP)
 - Call sessions do not need real-time monitoring UI for MVP
