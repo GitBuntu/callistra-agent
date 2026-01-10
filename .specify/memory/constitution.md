@@ -1,15 +1,16 @@
 <!-- 
-SYNC IMPACT REPORT v1.0.0
+SYNC IMPACT REPORT v1.0.1
 =========================
-Version Change: N/A (Initial)
-New Constitution Created: 2026-01-10
-Principles Added: 5 (Pragmatism, Code Quality, Testing Standards, UX Consistency, User & Performance Requirements)
-New Sections: User & Performance Requirements, Development Workflow & Quality Gates
-Templates Updated: 
-  - ✅ plan-template.md (Constitution Check section)
-  - ✅ spec-template.md (testing requirements alignment)
-  - ✅ tasks-template.md (task categorization by principles)
-No Deferred Items
+Version Change: PATCH (v1.0.0 → v1.0.1)
+Amendment Date: 2026-01-10
+Principle Modified: I. Pragmatism
+Change Summary: Added security rules for documentation - credentials and real configuration values must never appear in documentation files
+Migration Plan: Review all existing documentation files for exposed credentials/phone numbers/connection strings and replace with placeholders
+New Rules Added: 
+  - Credentials, secrets, and real configuration values MUST NEVER appear in documentation files
+  - Documentation examples MUST use placeholder values
+Rationale: Prevents accidental exposure of sensitive data in version control and public repositories
+No Template Changes Required
 -->
 
 # Callistra-Agent Constitution
@@ -25,8 +26,10 @@ Prioritize working solutions over perfection. Make data-driven decisions. Accept
 - Ship incremental value early; gather user feedback to drive optimization priorities
 - All optimization efforts MUST be justified by quantified metrics (response time, error rate, resource usage)
 - Complex trade-offs require brief architectural decision records (ADRs) with trade-off analysis
+- **Credentials, secrets, and real configuration values MUST NEVER appear in documentation files; use placeholders instead**
+- **Documentation examples MUST use placeholder values** (e.g., `+1234567890` for phone numbers, `your-resource-name` for Azure resources, `YOUR_CONNECTION_STRING` for credentials)
 
-**Rationale**: Healthcare outreach requires iterative refinement based on real user behavior. Perfect solutions delay time-to-value. Documented debt ensures we remain aware of compromises and address them systematically.
+**Rationale**: Healthcare outreach requires iterative refinement based on real user behavior. Perfect solutions delay time-to-value. Documented debt ensures we remain aware of compromises and address them systematically. Protecting credentials in documentation prevents accidental exposure in version control.
 
 ### II. Code Quality
 
@@ -183,4 +186,4 @@ This Constitution supersedes all informal practices and guides development decis
 - **Plan Template**: `.specify/templates/plan-template.md` includes Constitution Check gate
 - **Spec Template**: `.specify/templates/spec-template.md` ensures testing requirements align with principle III
 
-**Version**: 1.0.0 | **Ratified**: 2026-01-10 | **Last Amended**: 2026-01-10
+**Version**: 1.0.1 | **Ratified**: 2026-01-10 | **Last Amended**: 2026-01-10

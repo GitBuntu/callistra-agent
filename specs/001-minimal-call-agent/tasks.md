@@ -28,20 +28,20 @@
 
 **Purpose**: Create project structure and install dependencies
 
-- [ ] T001 Create solution file `CallistraAgent.sln` at repository root
-- [ ] T002 [P] Create Azure Functions project `src/CallistraAgent.Functions/CallistraAgent.Functions.csproj` (.NET 9 isolated worker)
-- [ ] T003 [P] Create test project `tests/CallistraAgent.Functions.Tests/CallistraAgent.Functions.Tests.csproj` (xUnit)
-- [ ] T004 [P] Add NuGet package `Azure.Communication.CallAutomation` to Functions project
-- [ ] T005 [P] Add NuGet package `Microsoft.EntityFrameworkCore.SqlServer` version 8.x to Functions project
-- [ ] T006 [P] Add NuGet package `Microsoft.Azure.Functions.Worker.Extensions.Http` to Functions project
-- [ ] T007 [P] Add NuGet package `Microsoft.ApplicationInsights.WorkerService` to Functions project
-- [ ] T008 [P] Add NuGet package `xUnit` to test project
-- [ ] T009 [P] Add NuGet package `FluentAssertions` to test project
-- [ ] T010 [P] Add NuGet package `Moq` to test project
-- [ ] T011 Create `.editorconfig` at repository root with C# formatting rules
+- [X] T001 Create solution file `CallistraAgent.sln` at repository root
+- [X] T002 [P] Create Azure Functions project `src/CallistraAgent.Functions/CallistraAgent.Functions.csproj` (.NET 9 isolated worker)
+- [X] T003 [P] Create test project `tests/CallistraAgent.Functions.Tests/CallistraAgent.Functions.Tests.csproj` (xUnit)
+- [X] T004 [P] Add NuGet package `Azure.Communication.CallAutomation` to Functions project
+- [X] T005 [P] Add NuGet package `Microsoft.EntityFrameworkCore.SqlServer` version 8.x to Functions project
+- [X] T006 [P] Add NuGet package `Microsoft.Azure.Functions.Worker.Extensions.Http` to Functions project
+- [X] T007 [P] Add NuGet package `Microsoft.ApplicationInsights.WorkerService` to Functions project
+- [X] T008 [P] Add NuGet package `xUnit` to test project
+- [X] T009 [P] Add NuGet package `FluentAssertions` to test project
+- [X] T010 [P] Add NuGet package `Moq` to test project
+- [X] T011 Create `.editorconfig` at repository root with C# formatting rules
 - [ ] T012 Create `README.md` at repository root with setup instructions
-- [ ] T013 [P] Create `host.json` in Functions project with Azure Functions runtime configuration
-- [ ] T014 [P] Create `local.settings.json` in Functions project with dev configuration template (ACS connection string, SQL connection string)
+- [X] T013 [P] Create `host.json` in Functions project with Azure Functions runtime configuration
+- [X] T014 [P] Create `local.settings.json` in Functions project with dev configuration template (ACS connection string, SQL connection string)
 
 ---
 
@@ -53,51 +53,51 @@
 
 ### Database Schema
 
-- [ ] T015 Create SQL table script `CallistraAgent/Tables/Members.sql` with schema from data-model.md
-- [ ] T016 [P] Create SQL table script `CallistraAgent/Tables/CallSessions.sql` with schema from data-model.md
-- [ ] T017 [P] Create SQL table script `CallistraAgent/Tables/CallResponses.sql` with schema from data-model.md
-- [ ] T018 Deploy database schema to local SQL Server 2025 using sqlpackage
-- [ ] T019 Insert test member data for local development (3 test members with valid phone numbers)
+- [X] T015 Create SQL table script `CallistraAgent/Tables/Members.sql` with schema from data-model.md
+- [X] T016 [P] Create SQL table script `CallistraAgent/Tables/CallSessions.sql` with schema from data-model.md
+- [X] T017 [P] Create SQL table script `CallistraAgent/Tables/CallResponses.sql` with schema from data-model.md
+- [X] T018 Deploy database schema to local SQL Server 2025 using sqlpackage
+- [X] T019 Insert test member data for local development (3 test members with valid phone numbers)
 
 ### Entity Framework Core Setup
 
-- [ ] T020 Create `Member` entity class in `src/CallistraAgent.Functions/Models/Member.cs` with properties from data-model.md
-- [ ] T021 [P] Create `CallSession` entity class in `src/CallistraAgent.Functions/Models/CallSession.cs` with properties from data-model.md
-- [ ] T022 [P] Create `CallResponse` entity class in `src/CallistraAgent.Functions/Models/CallResponse.cs` with properties from data-model.md
-- [ ] T023 Create `CallStatus` enum in `src/CallistraAgent.Functions/Models/CallStatus.cs` with values: Initiated, Ringing, Connected, Completed, Disconnected, Failed, NoAnswer, VoicemailMessage
-- [ ] T024 Create `CallistraAgentDbContext` in `src/CallistraAgent.Functions/Data/CallistraAgentDbContext.cs` with entity configurations from data-model.md
-- [ ] T025 Configure DbContext indexes and constraints per data-model.md specifications
+- [X] T020 Create `Member` entity class in `src/CallistraAgent.Functions/Models/Member.cs` with properties from data-model.md
+- [X] T021 [P] Create `CallSession` entity class in `src/CallistraAgent.Functions/Models/CallSession.cs` with properties from data-model.md
+- [X] T022 [P] Create `CallResponse` entity class in `src/CallistraAgent.Functions/Models/CallResponse.cs` with properties from data-model.md
+- [X] T023 Create `CallStatus` enum in `src/CallistraAgent.Functions/Models/CallStatus.cs` with values: Initiated, Ringing, Connected, Completed, Disconnected, Failed, NoAnswer, VoicemailMessage
+- [X] T024 Create `CallistraAgentDbContext` in `src/CallistraAgent.Functions/Data/CallistraAgentDbContext.cs` with entity configurations from data-model.md
+- [X] T025 Configure DbContext indexes and constraints per data-model.md specifications
 - [ ] T026 Create EF Core migration `InitialCreate` using `dotnet ef migrations add`
 - [ ] T027 Apply migration to local database using `dotnet ef database update`
 
 ### Configuration & Dependency Injection
 
-- [ ] T028 Create `AzureCommunicationServicesOptions` class in `src/CallistraAgent.Functions/Configuration/AzureCommunicationServicesOptions.cs`
-- [ ] T029 [P] Create `DatabaseOptions` class in `src/CallistraAgent.Functions/Configuration/DatabaseOptions.cs`
-- [ ] T030 Create `Program.cs` in Functions project with DI container setup (DbContext, CallAutomationClient, services)
-- [ ] T031 Configure connection pooling and retry policies for DbContext in Program.cs
-- [ ] T032 Register CallAutomationClient as singleton in DI container
-- [ ] T033 Configure Application Insights telemetry worker service in Program.cs
+- [X] T028 Create `AzureCommunicationServicesOptions` class in `src/CallistraAgent.Functions/Configuration/AzureCommunicationServicesOptions.cs`
+- [X] T029 [P] Create `DatabaseOptions` class in `src/CallistraAgent.Functions/Configuration/DatabaseOptions.cs`
+- [X] T030 Create `Program.cs` in Functions project with DI container setup (DbContext, CallAutomationClient, services)
+- [X] T031 Configure connection pooling and retry policies for DbContext in Program.cs
+- [X] T032 Register CallAutomationClient as singleton in DI container
+- [X] T033 Configure Application Insights telemetry worker service in Program.cs
 
 ### Repository Pattern
 
-- [ ] T034 Create `IMemberRepository` interface in `src/CallistraAgent.Functions/Data/Repositories/IMemberRepository.cs`
-- [ ] T035 [P] Create `ICallSessionRepository` interface in `src/CallistraAgent.Functions/Data/Repositories/ICallSessionRepository.cs`
-- [ ] T036 Implement `MemberRepository` in `src/CallistraAgent.Functions/Data/Repositories/MemberRepository.cs` with async CRUD methods
-- [ ] T037 [P] Implement `CallSessionRepository` in `src/CallistraAgent.Functions/Data/Repositories/CallSessionRepository.cs` with async CRUD methods
-- [ ] T038 Register repositories as scoped services in Program.cs DI container
+- [X] T034 Create `IMemberRepository` interface in `src/CallistraAgent.Functions/Data/Repositories/IMemberRepository.cs`
+- [X] T035 [P] Create `ICallSessionRepository` interface in `src/CallistraAgent.Functions/Data/Repositories/ICallSessionRepository.cs`
+- [X] T036 Implement `MemberRepository` in `src/CallistraAgent.Functions/Data/Repositories/MemberRepository.cs` with async CRUD methods
+- [X] T037 [P] Implement `CallSessionRepository` in `src/CallistraAgent.Functions/Data/Repositories/CallSessionRepository.cs` with async CRUD methods
+- [X] T038 Register repositories as scoped services in Program.cs DI container
 
 ### DTOs for API Contracts
 
-- [ ] T039 Create `InitiateCallRequest` DTO in `src/CallistraAgent.Functions/Models/DTOs/InitiateCallRequest.cs` (empty body, memberId from route)
-- [ ] T040 [P] Create `InitiateCallResponse` DTO in `src/CallistraAgent.Functions/Models/DTOs/InitiateCallResponse.cs` per contracts/initiate-call.yaml
-- [ ] T041 [P] Create `CallEventPayload` DTO in `src/CallistraAgent.Functions/Models/DTOs/CallEventPayload.cs` for CloudEvent parsing
-- [ ] T042 [P] Create `CallStatusResponse` DTO in `src/CallistraAgent.Functions/Models/DTOs/CallStatusResponse.cs` per contracts/call-status.yaml
+- [X] T039 Create `InitiateCallRequest` DTO in `src/CallistraAgent.Functions/Models/DTOs/InitiateCallRequest.cs` (empty body, memberId from route)
+- [X] T040 [P] Create `InitiateCallResponse` DTO in `src/CallistraAgent.Functions/Models/DTOs/InitiateCallResponse.cs` per contracts/initiate-call.yaml
+- [X] T041 [P] Create `CallEventPayload` DTO in `src/CallistraAgent.Functions/Models/DTOs/CallEventPayload.cs` for CloudEvent parsing
+- [X] T042 [P] Create `CallStatusResponse` DTO in `src/CallistraAgent.Functions/Models/DTOs/CallStatusResponse.cs` per contracts/call-status.yaml
 
 ### Constants
 
-- [ ] T043 Create `HealthcareQuestions` constants class in `src/CallistraAgent.Functions/Constants/HealthcareQuestions.cs` with 3 question texts from spec.md
-- [ ] T044 [P] Create `VoicemailMessages` constants class in `src/CallistraAgent.Functions/Constants/VoicemailMessages.cs` with person-detection prompt and callback message
+- [X] T043 Create `HealthcareQuestions` constants class in `src/CallistraAgent.Functions/Constants/HealthcareQuestions.cs` with 3 question texts from spec.md
+- [X] T044 [P] Create `VoicemailMessages` constants class in `src/CallistraAgent.Functions/Constants/VoicemailMessages.cs` with person-detection prompt and callback message
 
 **Checkpoint**: ✅ Foundation complete - user story implementation can begin
 
@@ -120,24 +120,24 @@
 
 ### Service Layer for User Story 1
 
-- [ ] T051 [P] [US1] Create `ICallService` interface in `src/CallistraAgent.Functions/Services/ICallService.cs` with InitiateCallAsync method
-- [ ] T052 [US1] Implement `CallService` in `src/CallistraAgent.Functions/Services/CallService.cs` with call initiation logic (depends on T034, T035)
-- [ ] T053 [US1] Add method to CallService for handling CallConnected event (update CallSession status to Connected)
-- [ ] T054 [US1] Add method to CallService for handling CallDisconnected event (update CallSession status to Disconnected, set EndTime)
-- [ ] T055 [US1] Add method to CallService for handling call failure scenarios (update status to Failed)
-- [ ] T056 [US1] Add method to CallService for handling NoAnswer timeout (update status to NoAnswer, set EndTime)
-- [ ] T057 [US1] Register CallService as scoped service in Program.cs DI container
+- [X] T051 [P] [US1] Create `ICallService` interface in `src/CallistraAgent.Functions/Services/ICallService.cs` with InitiateCallAsync method
+- [X] T052 [US1] Implement `CallService` in `src/CallistraAgent.Functions/Services/CallService.cs` with call initiation logic (depends on T034, T035)
+- [X] T053 [US1] Add method to CallService for handling CallConnected event (update CallSession status to Connected)
+- [X] T054 [US1] Add method to CallService for handling CallDisconnected event (update CallSession status to Disconnected, set EndTime)
+- [X] T055 [US1] Add method to CallService for handling call failure scenarios (update status to Failed)
+- [X] T056 [US1] Add method to CallService for handling NoAnswer timeout (update status to NoAnswer, set EndTime)
+- [X] T057 [US1] Register CallService as scoped service in Program.cs DI container
 
 ### API Endpoints for User Story 1
 
-- [ ] T058 [US1] Create `InitiateCallFunction` in `src/CallistraAgent.Functions/Functions/InitiateCallFunction.cs` with POST /api/calls/initiate/{memberId} endpoint
-- [ ] T059 [US1] Implement request validation in InitiateCallFunction (memberId > 0, member exists, no active call)
-- [ ] T060 [US1] Implement error handling in InitiateCallFunction with RFC 7807 Problem Details responses
-- [ ] T061 [US1] Create `CallEventWebhookFunction` in `src/CallistraAgent.Functions/Functions/CallEventWebhookFunction.cs` with POST /api/calls/events endpoint
-- [ ] T062 [US1] Implement CloudEvent parsing in CallEventWebhookFunction using CallAutomationEventParser
-- [ ] T063 [US1] Route CallConnected event to CallService.HandleCallConnected method
-- [ ] T064 [US1] Route CallDisconnected event to CallService.HandleCallDisconnected method
-- [ ] T065 [US1] Add idempotency handling in CallEventWebhookFunction using event ID deduplication
+- [X] T058 [US1] Create `InitiateCallFunction` in `src/CallistraAgent.Functions/Functions/InitiateCallFunction.cs` with POST /api/calls/initiate/{memberId} endpoint
+- [X] T059 [US1] Implement request validation in InitiateCallFunction (memberId > 0, member exists, no active call)
+- [X] T060 [US1] Implement error handling in InitiateCallFunction with RFC 7807 Problem Details responses
+- [X] T061 [US1] Create `CallEventWebhookFunction` in `src/CallistraAgent.Functions/Functions/CallEventWebhookFunction.cs` with POST /api/calls/events endpoint
+- [X] T062 [US1] Implement CloudEvent parsing in CallEventWebhookFunction using CallAutomationEventParser
+- [X] T063 [US1] Route CallConnected event to CallService.HandleCallConnected method
+- [X] T064 [US1] Route CallDisconnected event to CallService.HandleCallDisconnected method
+- [X] T065 [US1] Add idempotency handling in CallEventWebhookFunction using event ID deduplication
 
 ### Unit Tests for User Story 1
 
