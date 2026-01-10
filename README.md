@@ -6,12 +6,12 @@ Makes automated phone calls to healthcare members, asks questions, captures resp
 
 ### The Basics
 - Call people using Azure Communication Services
-- Ask 3-5 healthcare questions
+- Ask 3 healthcare questions
 - Record their yes/no answers
 - Save to database
 
 ### Stack
-- **Azure Functions** (.NET 8) - 3 HTTP endpoints
+- **Azure Functions** (.NET 9) - 3 HTTP endpoints
 - **Azure Communication Services** - Makes the calls
 - **SQL Server** - Stores responses
 - **Entity Framework Core** - Database access
@@ -30,15 +30,15 @@ Three tables:
 - **CallResponses** - Q&A data (question, response)
 
 Three functions:
-- **InitiateCall** - Starts the call
-- **HandleCallConnected** - Plays questions when connected
-- **HandleResponse** - Captures answers
+- **InitiateCall** - Starts the call (POST /api/calls/initiate/{memberId})
+- **CallEvents** - Webhook handler for call events (POST /api/calls/events)
+- **CallStatus** - Query call session and responses (GET /api/calls/status/{callConnectionId})
 
 ## 📋 Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
 - [Azure Functions Core Tools](https://docs.microsoft.com/azure/azure-functions/functions-run-local)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop) (for local database)
+- [SQL Server 2025](https://www.microsoft.com/sql-server/sql-server-downloads) (local installation)
 - [Git](https://git-scm.com/)
 - [Visual Studio Code](https://code.visualstudio.com/) (recommended)
 
@@ -52,12 +52,9 @@ cd callistra-agent
 
 ### 2. Database Setup
 ```bash
-# Start SQL Server container
-cd db
-docker compose up -d
-
-# Verify connection
-cd ../backend/src/CallAgent.Api
+# Ensure SQL Server is running locally
+# Create database using EF Core migrations
+cd src/CallAgent.Functions
 dotnet ef database update
 ```
 
@@ -67,7 +64,7 @@ dotnet ef database update
 # Press Ctrl+Shift+P → "Tasks: Run Task" → "build (functions)"
 
 # Or manually
-cd backend/src/CallAgent.Api
+cd src/CallAgent.Functions
 dotnet build
 ```
 
@@ -77,7 +74,7 @@ dotnet build
 # Press Ctrl+Shift+P → "Tasks: Run Task" → "func: 4"
 
 # Or manually
-cd backend/src/CallAgent.Api/bin/Debug/net8.0
+cd src/CallAgent.Functions/bin/Debug/net9.0
 func host start
 ```
 
@@ -88,7 +85,7 @@ The API will be available at `http://localhost:7071`
 ### Key Commands
 - **Build**: `dotnet build` or VS Code task "build (functions)"
 - **Run**: `func host start` or VS Code task "func: 4"
-- **Database**: `docker compose up` from `/db` directory
+- **Database**: Managed by local SQL Server installation
 - **Publish**: `dotnet publish --configuration Release` or VS Code task "publish (functions)"
 
 ### Speech Services Configuration
@@ -104,45 +101,37 @@ Azure Speech Services requires configuration in `appsettings.json`:
 
 ### Project Structure
 ```
-backend/src/CallAgent.Api/
-├── Data/                    # Entity Framework context and migrations
-├── Functions/              # Azure Functions endpoints
-├── Models/                 # DTOs, entities, and configuration
-├── Repositories/           # Data access layer
-├── Services/               # Business logic layer
-└── appsettings.json        # Configuration
+src/CallAgent.Functions/
+├── Data/
+│   ├── CallAgentDbContext.cs
+│   ├── Entities/           # Member, CallSession, CallResponse
+│   └── Migrations/         # EF Core migrations
+├── Functions/              # Azure Functions HTTP triggers
+│   ├── CallInitiation.cs   # POST /api/calls/initiate/{memberId}
+│   ├── CallEvents.cs       # POST /api/calls/events
+│   └── CallStatus.cs       # GET /api/calls/status/{callConnectionId}
+├── Services/               # Business logic (CallService)
+├── Models/                 # DTOs and configuration
+├── Configuration/          # AcsOptions
+├── host.json
+└── local.settings.json
 
-tests/                      # Unit and integration tests
-db/                        # Database setup and seed data
-docs/                      # Documentation
-frontend/                  # Web interface (future)
+tests/CallAgent.Functions.Tests/
+├── Unit/                   # Unit tests
+└── Integration/            # Integration tests
 ```
 
 ## 📡 API Endpoints
 
-### Health & System
-- `GET /api/health` - System health check
-- `GET /api/system/health` - Detailed system status
+### Core Endpoints (MVP)
+- `POST /api/calls/initiate/{memberId}` - Initiate outbound call to member
+- `POST /api/calls/events` - Webhook for Azure Communication Services call events
+- `GET /api/calls/status/{callConnectionId}` - Query call session status and responses
 
-### Member Management
-- `GET /api/members` - List members
-- `GET /api/members/{id}` - Get member details
-- `POST /api/members` - Create new member
-- `PUT /api/members/{id}` - Update member
-
-### Call Session Management
-- `GET /api/callsessions` - List call sessions
-- `GET /api/callsessions/{id}` - Get call session details
-- `POST /api/callsessions` - Initiate new call session
-- `POST /api/callsessions/{id}/complete` - Complete call session
-
-### Speech Processing
-- `POST /api/speech/recognize` - Speech-to-text recognition
-- `POST /api/speech/synthesize` - Text-to-speech synthesis
-
-### ACS Integration (Phase 4.1)
-- `POST /api/acs/events/{memberId}/{callSessionId}` - Handle call events
-- `POST /api/acs/question/{memberId}/{callSessionId}/{questionNumber}` - Process questions with speech recognition
+### Future Endpoints (Out of Scope for MVP)
+- Member Management (CRUD operations)
+- Health checks
+- Advanced speech processing
 
 ## 🧪 Testing
 
@@ -169,31 +158,21 @@ cd tests/api
 ### Environment Variables
 ```json
 {
-  "CallAgent": {
-    "Database": {
-      "ConnectionString": "Server=localhost,1433;Database=CallAgent;User Id=sa;Password=CallAgent123!;"
-    },
-    "FeatureFlags": {
-      "IsCallRecordingEnabled": true,
-      "IsAcsIntegrationEnabled": true,
-      "IsSpeechServicesEnabled": true
-    }
+  "ConnectionStrings": {
+    "CallistraAgentDb": "Server=localhost;Database=CallistraAgent;Integrated Security=true;TrustServerCertificate=true;"
   },
-  "SpeechServices": {
-    "SubscriptionKey": "your-cognitive-services-key",
-    "Region": "eastus"
-  },
-  "CommunicationServices": {
-    "ConnectionString": "your-acs-connection-string"
+  "AzureCommunicationServices": {
+    "ConnectionString": "endpoint=https://your-acs-resource.communication.azure.com/;accesskey=your-key",
+    "SourcePhoneNumber": "+18005551234",
+    "CallbackBaseUrl": "https://your-function-app.azurewebsites.net"
   }
 }
 ```
 
-### Feature Flags
-- `IsCallRecordingEnabled`: Enable/disable call recording
-- `IsAcsIntegrationEnabled`: Enable Azure Communication Services
-- `IsTwilioIntegrationEnabled`: Enable Twilio integration
-- `IsSpeechServicesEnabled`: Enable Azure Speech Services for voice recognition
+### Configuration Notes
+- Database connection uses integrated security for local development
+- Azure Communication Services connection string from Azure Portal
+- Callback URL must be publicly accessible (use ngrok or Azure Dev Tunnels for local testing)
 
 ## 🚀 Deployment
 
@@ -214,9 +193,9 @@ az functionapp deployment source config-zip \
 ```
 
 ### Local Development
-- Database: `docker compose up` in `/db`
-- Functions: `func host start` in `/backend/src/CallAgent.Api/bin/Debug/net8.0`
-- Frontend: `npm start` in `/frontend` (future)
+- Database: Local SQL Server 2025 instance
+- Functions: `func host start` in `/src/CallAgent.Functions/bin/Debug/net9.0`
+- Webhook testing: Use ngrok or Azure Dev Tunnels for public callback URL
 
 ### Development Guidelines
 - Follow existing code patterns and architecture

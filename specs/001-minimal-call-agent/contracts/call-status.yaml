@@ -89,6 +89,7 @@ components:
             - Disconnected
             - Failed
             - NoAnswer
+            - VoicemailMessage
           example: "Connected"
         startTime:
           type: string

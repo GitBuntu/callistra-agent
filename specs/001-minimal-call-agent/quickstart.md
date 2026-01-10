@@ -10,11 +10,11 @@ This guide walks you through setting up the minimal healthcare call agent from s
 
 ## Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) installed
+- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) installed
 - [Azure Functions Core Tools v4](https://learn.microsoft.com/azure/azure-functions/functions-run-local)
 - Azure subscription with permissions to create resources
-- SQL Server (Azure SQL Database or local instance)
-- [Azure Dev Tunnels](https://learn.microsoft.com/azure/developer/dev-tunnels/get-started) for local webhook testing
+- SQL Server 2025 (local development) or Azure SQL Database (production)
+- [Azure Dev Tunnels](https://learn.microsoft.com/azure/developer/dev-tunnels/get-started) OR [ngrok](https://ngrok.com/) for local webhook testing
 
 ---
 
