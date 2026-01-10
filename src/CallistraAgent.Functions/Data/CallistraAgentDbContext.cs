@@ -35,7 +35,7 @@ public class CallistraAgentDbContext : DbContext
         // Configure Member entity
         modelBuilder.Entity<Member>(entity =>
         {
-            entity.ToTable("Members");
+            entity.ToTable("Members", tb => tb.HasTrigger("UpdateTimestamp"));
             entity.HasKey(e => e.Id);
             entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
             entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);
@@ -55,7 +55,7 @@ public class CallistraAgentDbContext : DbContext
         // Configure CallSession entity
         modelBuilder.Entity<CallSession>(entity =>
         {
-            entity.ToTable("CallSessions");
+            entity.ToTable("CallSessions", tb => tb.HasTrigger("UpdateTimestamp"));
             entity.HasKey(e => e.Id);
             entity.Property(e => e.MemberId).IsRequired();
             entity.Property(e => e.CallConnectionId).HasMaxLength(100);
