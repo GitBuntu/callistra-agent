@@ -9,7 +9,14 @@ using Microsoft.Extensions.Options;
 namespace CallistraAgent.Functions.Services;
 
 /// <summary>
-/// Service implementation for call management operations
+/// Service implementation for call management operations.
+///
+/// MVP SCOPE - This implementation supports TWO core scenarios only:
+/// 1. Human Answers: CallConnected → Person detection prompt → Press 1 (RecognizeCompleted) → 3 questions → Completed or Disconnected
+/// 2. Voicemail Answers: CallConnected → Person detection prompt → Timeout (RecognizeFailed) → Leave message → VoicemailMessage
+///
+/// Implements Azure's documented AMD pattern: Use Recognize API after CallConnected to detect human vs voicemail.
+/// Out of scope: Retry logic, partial response recovery, call transfers, inbound calls, dynamic questions
 /// </summary>
 public class CallService : ICallService
 {
@@ -17,6 +24,8 @@ public class CallService : ICallService
     private readonly IMemberRepository _memberRepository;
     private readonly CallAutomationClient _callAutomationClient;
     private readonly AzureCommunicationServicesOptions _acsOptions;
+    private readonly IQuestionService _questionService;
+    private readonly CallSessionState _callSessionState;
     private readonly ILogger<CallService> _logger;
 
     public CallService(
@@ -24,12 +33,16 @@ public class CallService : ICallService
         IMemberRepository memberRepository,
         CallAutomationClient callAutomationClient,
         IOptions<AzureCommunicationServicesOptions> acsOptions,
+        IQuestionService questionService,
+        CallSessionState callSessionState,
         ILogger<CallService> logger)
     {
         _callSessionRepository = callSessionRepository;
         _memberRepository = memberRepository;
         _callAutomationClient = callAutomationClient;
         _acsOptions = acsOptions.Value;
+        _questionService = questionService;
+        _callSessionState = callSessionState;
         _logger = logger;
     }
 
@@ -74,6 +87,7 @@ public class CallService : ICallService
         try
         {
             // Initiate call via Azure Communication Services
+            // AMD is implemented via person detection prompt AFTER CallConnected (per Azure docs)
             var callbackUri = new Uri($"{_acsOptions.CallbackBaseUrl}/api/calls/events");
             var target = new PhoneNumberIdentifier(member.PhoneNumber);
             var caller = new PhoneNumberIdentifier(_acsOptions.PhoneNumber);
@@ -121,6 +135,9 @@ public class CallService : ICallService
         await _callSessionRepository.UpdateAsync(callSession, cancellationToken);
 
         _logger.LogInformation("Call session {CallSessionId} marked as Connected", callSession.Id);
+
+        // Initialize call flow (play person detection prompt)
+        await InitializeCallFlowAsync(callConnectionId, cancellationToken);
     }
 
     public async Task HandleCallDisconnectedAsync(string callConnectionId, CancellationToken cancellationToken = default)
@@ -175,5 +192,124 @@ public class CallService : ICallService
         await _callSessionRepository.UpdateAsync(callSession, cancellationToken);
 
         _logger.LogInformation("Call session {CallSessionId} marked as NoAnswer", callSession.Id);
+    }
+
+    public async Task InitializeCallFlowAsync(string callConnectionId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Initializing call flow for {CallConnectionId}", callConnectionId);
+
+        var callSession = await _callSessionRepository.GetByCallConnectionIdAsync(callConnectionId, cancellationToken);
+        if (callSession == null)
+        {
+            _logger.LogWarning("Call session not found for CallConnectionId: {CallConnectionId}", callConnectionId);
+            return;
+        }
+
+        // Implement Azure's documented AMD approach:
+        // 1. After CallConnected, play person detection prompt with DTMF recognition
+        // 2. If DTMF received (RecognizeCompleted) = Human detected → Continue with questions
+        // 3. If timeout (RecognizeFailed) = Voicemail detected → Leave message
+
+        // Initialize state starting at question 0 (person detection)
+        _callSessionState.InitializeCallState(callConnectionId, callSession.Id);
+        _logger.LogInformation("Initialized call state for session {CallSessionId}, starting AMD person detection", callSession.Id);
+
+        // Play person detection prompt (Azure AMD pattern)
+        var callConnection = _callAutomationClient.GetCallConnection(callConnectionId);
+        await _questionService.PlayPersonDetectionPromptAsync(callConnection, cancellationToken);
+    }
+
+    /// <summary>
+    /// Handles person detection timeout per Azure's AMD pattern.
+    /// Timeout = voicemail detected (Scenario 2) → Leave callback message.
+    /// </summary>
+    public async Task HandlePersonDetectionTimeoutAsync(string callConnectionId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Person detection timeout (voicemail detected per Azure AMD) for {CallConnectionId}", callConnectionId);
+
+        var callSession = await _callSessionRepository.GetByCallConnectionIdAsync(callConnectionId, cancellationToken);
+        if (callSession == null)
+        {
+            _logger.LogWarning("Call session not found for CallConnectionId: {CallConnectionId}", callConnectionId);
+            return;
+        }
+
+        // Mark as VoicemailMessage (Scenario 2: Voicemail detected)
+        callSession.Status = CallStatus.VoicemailMessage;
+        await _callSessionRepository.UpdateAsync(callSession, cancellationToken);
+
+        _logger.LogInformation("Call session {CallSessionId} marked as VoicemailMessage, leaving callback message", callSession.Id);
+
+        // Leave voicemail callback message (Scenario 2)
+        var callConnection = _callAutomationClient.GetCallConnection(callConnectionId);
+        await _questionService.PlayVoicemailCallbackMessageAsync(callConnection, cancellationToken);
+
+        // PlayCompleted event will trigger hangup
+    }
+
+    public async Task HandleDtmfResponseAsync(string callConnectionId, string dtmfTones, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Handling DTMF response '{DtmfTones}' for {CallConnectionId}", dtmfTones, callConnectionId);
+
+        var state = _callSessionState.GetCallState(callConnectionId);
+        if (state == null)
+        {
+            _logger.LogWarning("Call state not found for {CallConnectionId}", callConnectionId);
+            return;
+        }
+
+        // Progress to next question
+        var nextQuestion = _callSessionState.ProgressToNextQuestion(callConnectionId);
+        _logger.LogInformation("Progressed to question {QuestionNumber} for {CallConnectionId}", nextQuestion, callConnectionId);
+
+        // If we've completed all 3 questions, mark call as Completed
+        if (nextQuestion > 3)
+        {
+            var callSession = await _callSessionRepository.GetByCallConnectionIdAsync(callConnectionId, cancellationToken);
+            if (callSession != null)
+            {
+                callSession.Status = CallStatus.Completed;
+                callSession.EndTime = DateTime.UtcNow;
+                await _callSessionRepository.UpdateAsync(callSession, cancellationToken);
+                _logger.LogInformation("Call session {CallSessionId} marked as Completed", callSession.Id);
+
+                // Hang up the call
+                var callConnection = _callAutomationClient.GetCallConnection(callConnectionId);
+                await callConnection.HangUpAsync(forEveryone: true, cancellationToken);
+            }
+
+            // Clean up state
+            _callSessionState.RemoveCallState(callConnectionId);
+            return;
+        }
+
+        // Play next question
+        var callConnection2 = _callAutomationClient.GetCallConnection(callConnectionId);
+        await _questionService.PlayHealthcareQuestionAsync(callConnection2, nextQuestion, cancellationToken);
+    }
+
+    public async Task HandlePlayCompletedAsync(string callConnectionId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Handling PlayCompleted event for {CallConnectionId}", callConnectionId);
+
+        var callSession = await _callSessionRepository.GetByCallConnectionIdAsync(callConnectionId, cancellationToken);
+        if (callSession == null)
+        {
+            _logger.LogWarning("Call session not found for CallConnectionId: {CallConnectionId}", callConnectionId);
+            return;
+        }
+
+        // If status is VoicemailMessage, hang up the call
+        if (callSession.Status == CallStatus.VoicemailMessage)
+        {
+            _logger.LogInformation("Voicemail message completed, hanging up call {CallConnectionId}", callConnectionId);
+            var callConnection = _callAutomationClient.GetCallConnection(callConnectionId);
+            await callConnection.HangUpAsync(forEveryone: true, cancellationToken);
+
+            callSession.EndTime = DateTime.UtcNow;
+            await _callSessionRepository.UpdateAsync(callSession, cancellationToken);
+
+            _callSessionState.RemoveCallState(callConnectionId);
+        }
     }
 }

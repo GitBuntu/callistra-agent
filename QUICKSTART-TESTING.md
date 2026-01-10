@@ -19,7 +19,7 @@ devtunnel user login -g
 devtunnel host -p 7071 --allow-anonymous
 ```
 
-**Copy the tunnel URL** from the output (e.g., `https://k3c9ct2l-7071.eun1.devtunnels.ms`)
+**Copy the tunnel URL** from the output (e.g., `https://abc123-7071.devtunnels.ms`)
 
 ⚠️ **Keep this terminal running** throughout the test.
 
@@ -30,7 +30,7 @@ Edit `src/CallistraAgent.Functions/local.settings.json` and paste your tunnel UR
 ```json
 {
   "Values": {
-    "AzureCommunicationServices__CallbackBaseUrl": "https://k3c9ct2l-7071.eun1.devtunnels.ms"
+    "AzureCommunicationServices__CallbackBaseUrl": "https://your-tunnel-id-7071.devtunnels.ms"
   }
 }
 ```
@@ -85,7 +85,7 @@ curl -X POST http://localhost:7071/api/calls/initiate/1
   "memberId": 1,
   "status": "Initiated",
   "startTime": "2026-01-10T16:42:00Z",
-  "callbackUrl": "https://k3c9ct2l-7071.eun1.devtunnels.ms/api/calls/events"
+  "callbackUrl": "https://your-tunnel-id-7071.devtunnels.ms/api/calls/events"
 }
 ```
 
@@ -119,7 +119,7 @@ Replace `<callConnectionId>` with the value from the Azure Functions logs or dat
   "member": {
     "id": 1,
     "fullName": "John Doe",
-    "phoneNumber": "+12025551234"
+    "phoneNumber": "+15555551234"
   },
   "responses": []
 }
@@ -280,7 +280,7 @@ Terminal #2 shows detailed execution logs. Look for:
 
 Open the inspection URL in a browser (shown in Terminal #1):
 ```
-https://k3c9ct2l-7071-inspect.eun1.devtunnels.ms
+https://your-tunnel-id-7071-inspect.devtunnels.ms
 ```
 
 This shows:

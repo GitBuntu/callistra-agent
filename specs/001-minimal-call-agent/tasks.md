@@ -166,26 +166,26 @@
 
 ### Service Layer for User Story 2
 
-- [ ] T075 [P] [US2] Create `IQuestionService` interface in `src/CallistraAgent.Functions/Services/IQuestionService.cs` with PlayQuestion method
-- [ ] T076 [US2] Implement `QuestionService` in `src/CallistraAgent.Functions/Services/QuestionService.cs` with TTS playback logic
-- [ ] T077 [US2] Add method to QuestionService for playing person-detection prompt with DTMF recognition options
-- [ ] T078 [US2] Add method to QuestionService for playing healthcare question with DTMF recognition options (10s timeout)
-- [ ] T079 [US2] Add method to QuestionService for handling invalid DTMF (re-prompt logic, max 2 retries)
-- [ ] T080 [US2] Add method to QuestionService for handling DTMF timeout (re-prompt once, then skip)
-- [ ] T081 [US2] Register QuestionService as scoped service in Program.cs DI container
+- [X] T075 [P] [US2] Create `IQuestionService` interface in `src/CallistraAgent.Functions/Services/IQuestionService.cs` with PlayQuestion method
+- [X] T076 [US2] Implement `QuestionService` in `src/CallistraAgent.Functions/Services/QuestionService.cs` with TTS playback logic
+- [X] T077 [US2] Add method to QuestionService for playing person-detection prompt with DTMF recognition options
+- [X] T078 [US2] Add method to QuestionService for playing healthcare question with DTMF recognition options (10s timeout)
+- [X] T079 [US2] Add method to QuestionService for handling invalid DTMF (re-prompt logic, max 2 retries)
+- [X] T080 [US2] Add method to QuestionService for handling DTMF timeout (re-prompt once, then skip)
+- [X] T081 [US2] Register QuestionService as scoped service in Program.cs DI container
 
 ### Voicemail Detection Logic
 
-- [ ] T082 [US2] Add method to CallService for handling person-detection timeout (no DTMF response within 5s)
-- [ ] T083 [US2] Add method to QuestionService for playing voicemail callback message (no PHI)
-- [ ] T084 [US2] Update CallService to mark CallSession as VoicemailMessage status and hang up after callback message
+- [X] T082 [US2] Add method to CallService for handling person detection timeout (RecognizeFailed with timeout = voicemail per Azure AMD pattern)
+- [X] T083 [US2] Add method to QuestionService for playing voicemail callback message (no PHI)
+- [X] T084 [US2] Update CallService to mark CallSession as VoicemailMessage status after callback message plays (PlayCompleted triggers hangup)
 
 ### Question Flow State Management
 
-- [ ] T085 [US2] Create `CallSessionState` in-memory cache class in `src/CallistraAgent.Functions/Services/CallSessionState.cs` to track current question number
-- [ ] T086 [US2] Add method to CallService to initialize call state on CallConnected event (current question = 0 for person detection)
-- [ ] T087 [US2] Add method to CallService to progress to next question after DTMF response received
-- [ ] T088 [US2] Update CallEventWebhookFunction to route PlayCompleted event to trigger next DTMF recognition
+- [X] T085 [US2] Create `CallSessionState` in-memory cache class in `src/CallistraAgent.Functions/Services/CallSessionState.cs` to track current question number
+- [X] T086 [US2] Add method to CallService to initialize call state on CallConnected event (current question = 0 for person detection)
+- [X] T087 [US2] Add method to CallService to progress to next question after DTMF response received
+- [X] T088 [US2] Update CallEventWebhookFunction to route PlayCompleted event to trigger next DTMF recognition
 
 ### Unit Tests for User Story 2
 

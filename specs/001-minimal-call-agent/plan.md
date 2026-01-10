@@ -215,7 +215,7 @@ No violations. All Constitution principles satisfied for this MVP scope.
 - **Database**: Azure SQL Server (CallistraAgent) with EF Core 8+
 - **Call Management**: Azure Communication Services Call Automation SDK
 - **Testing**: xUnit + FluentAssertions + Moq with 4-tier strategy (unit/integration/e2e/load)
-- **Voicemail Detection**: DTMF-based person-detection prompt (5-second timeout)
+- **Voicemail Detection**: DTMF-based person-detection prompt (10-second timeout)
 - **Healthcare Questions**: 3 specific questions defined in spec
 - **Status Model**: 8 states including VoicemailMessage for voicemail detection
 

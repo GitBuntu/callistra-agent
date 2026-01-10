@@ -5,6 +5,42 @@
 **Status**: Draft  
 **Input**: User description: "Implement minimal viable healthcare call agent with Azure Communication Services - simplified approach with 3 endpoints, 3 tables, and basic call flow"
 
+## MVP Scope: Core Scenarios Supported
+
+This MVP supports **two scenarios only**. All other scenarios are explicitly out of scope.
+
+### Scenario 1: Human Answers Call
+1. System initiates call to member
+2. Call connects (CallConnected event received)
+3. System plays person detection prompt asking to press 1 (Azure AMD pattern: Recognize API with DTMF)
+4. **If member presses 1** (RecognizeCompleted event): System asks 3 healthcare questions
+   - Member has 10 seconds to respond to each question
+   - If all 3 questions answered → Call marked as `Completed` (successful)
+   - If 10 second silence on any question → Call hangs up, marked as `Disconnected` (unsuccessful)
+5. **If no press 1 within 10 seconds** (RecognizeFailed timeout): Voicemail detected → Leave callback message → `VoicemailMessage`
+
+### Scenario 2: Voicemail System Answers Call
+1. System initiates call to member
+2. Call connects to voicemail system (CallConnected event received)
+3. System plays person detection prompt (voicemail greeting is playing)
+4. No DTMF response within 10 seconds (RecognizeFailed timeout event)
+5. System leaves callback message (no PHI)
+6. System hangs up, call marked as `VoicemailMessage`
+
+**Technical Implementation:** Follows Azure Communication Services documented AMD pattern (https://learn.microsoft.com/en-us/azure/communication-services/concepts/call-automation/answer-machine-detection). After CallConnected event, use Recognize API to play prompt and detect DTMF. RecognizeCompleted = human. RecognizeFailed timeout = voicemail.
+
+### Explicitly Out of Scope (Not MVP)
+- Manual retry logic after failed calls
+- Partial response recovery beyond disconnect status
+- Complex call transfer or escalation
+- Live agent handoff
+- Inbound call handling
+- Dynamic or configurable question flows
+- Advanced voicemail detection strategies
+- Call recording
+- Real-time analytics or dashboards
+- **Dynamic program name substitution in TTS questions** (Member.Program field stored but not used in MVP; questions use generic "your healthcare program" wording)
+
 ## Clarifications
 
 ### Session 2026-01-10
@@ -16,7 +52,7 @@
 - Q: Call Session Status Values → A: Standard telephony status model (Initiated, Ringing, Connected, Completed, Disconnected, Failed, NoAnswer)
 - Q: Voicemail Handling → A: Use person-detection prompt; if voicemail detected, leave generic callback message (no PHI)
 - Q: What should the Azure SQL Database be named? → A: CallistraAgent
-- Q: What are the exact 3 healthcare questions to be asked during calls? → A: "Press 1 to confirm your identity", "Press 1 if you are aware of your enrollment in [Program]", "Press 1 if you need assistance with your program"
+- Q: What are the exact 3 healthcare questions to be asked during calls? → A: "Press 1 to confirm your identity", "Press 1 if you are aware of your enrollment in your healthcare program", "Press 1 if you need assistance with your program". Note: MVP uses generic wording; Member.Program field exists in database but not dynamically substituted into TTS questions (deferred to post-MVP for complexity reasons).
 - Q: What database platform should host the CallistraAgent database? → A: Azure SQL Server (production); SQL Server 2025 (local testing)
 - Q: What data access technology should the application use? → A: Entity Framework Core 8+
 - Q: What .NET runtime version should the Azure Functions use? → A: .NET 9
@@ -74,8 +110,8 @@ The system must record member answers to questions for analysis and follow-up by
 ### Edge Cases
 
 - **No Answer**: When a member doesn't answer the call within 30 seconds, the system marks the call session as "NoAnswer" and terminates the call attempt
-- **Voicemail Detection**: When a call connects, system plays person-detection prompt ("Press 1 if you can hear this message"). If no DTMF response within 5 seconds, system assumes voicemail, plays generic callback message with no PHI ("Hello, this is [Organization] calling about your healthcare enrollment. Please call us back at [phone number]. Thank you."), then hangs up and marks session as "VoicemailMessage"
-- **Person Confirmed**: When DTMF response (pressing 1) is received to person-detection prompt, system proceeds with healthcare questions
+- **Voicemail Detection (Azure AMD Pattern)**: After call connects, system plays person-detection prompt ("Press 1 if you can hear this message") using Recognize API with 10-second timeout. If DTMF response received (RecognizeCompleted event) = human confirmed, proceed with healthcare questions. If no DTMF response within 10 seconds (RecognizeFailed timeout event) = voicemail detected, play generic callback message with no PHI ("Hello, this is [Organization] calling about your healthcare enrollment. Please call us back at [phone number]. Thank you."), then hang up and mark session as "VoicemailMessage"
+- **Person Confirmed**: When DTMF response (pressing 1) is received to person-detection prompt (RecognizeCompleted event), system proceeds with healthcare questions
 - **Mid-Call Hangup**: When a member hangs up before completing all questions, the system updates call session status to "Disconnected" and saves any responses captured up to that point
 - **Invalid DTMF Input**: When a member presses a key other than 1 or 2, the system re-prompts with the same question (maximum 2 retries before moving to next question)
 - **Response Timeout**: When a member doesn't press any key within 10 seconds, the system re-prompts once, then moves to the next question if no response received after second 10-second timeout
@@ -116,14 +152,14 @@ Based on **Callistra-Agent Constitution v1.0.0**:
 - **FR-011**: System MUST persist all call sessions and responses to the database for healthcare coordinator review
 - **FR-012**: System MUST support a minimum of 3 healthcare questions per call flow
 - **FR-013**: System MUST use a configurable callback URL for Azure Communication Services webhook events
-- **FR-014**: System MUST ask the following 3 questions in order: (1) "Press 1 to confirm your identity", (2) "Press 1 if you are aware of your enrollment in [Program]" (with [Program] replaced by member's program name), (3) "Press 1 if you need assistance with your program"
-- **FR-015**: System MUST play person-detection prompt ("Press 1 if you can hear this message") when call connects and wait 5 seconds for DTMF response
+- **FR-014**: System MUST ask the following 3 questions in order: (1) "Press 1 to confirm your identity", (2) "Press 1 if you are aware of your enrollment in your healthcare program", (3) "Press 1 if you need assistance with your program". Note: MVP uses generic wording "your healthcare program"; dynamic substitution of Member.Program field value deferred to post-MVP.
+- **FR-015**: System MUST play person-detection prompt ("Press 1 if you can hear this message") when call connects and wait 10 seconds for DTMF response
 - **FR-016**: System MUST play generic callback message containing no PHI if no DTMF response received to person-detection prompt, then mark call as "VoicemailMessage" and hang up
 - **FR-017**: System MUST proceed with healthcare questions only after receiving DTMF confirmation (pressing 1) to person-detection prompt
 
 ### Key Entities
 
-- **Member**: Represents a healthcare program enrollee; includes name, phone number, and program identifier. This entity already exists in the database.
+- **Member**: Represents a healthcare program enrollee; includes FirstName, LastName, PhoneNumber (E.164 format), Program (healthcare program name like "Diabetes Care" or "Wellness Program"), Status (Active/Pending/Inactive), and timestamps. This entity already exists in the database. Note: Program field is stored but not used in MVP question wording (generic "your healthcare program" used instead).
 - **CallSession**: Represents a single call attempt; includes member reference, call connection ID, status (Initiated/Ringing/Connected/Completed/Disconnected/Failed/NoAnswer/VoicemailMessage), start time, and end time.
 - **CallResponse**: Represents a member's answer to a specific question; includes call session reference, question number, question text, and response value (1 for yes, 2 for no).
 

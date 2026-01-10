@@ -18,6 +18,8 @@ public class CallServiceTests
     private readonly Mock<ICallSessionRepository> _mockCallSessionRepository;
     private readonly Mock<IMemberRepository> _mockMemberRepository;
     private readonly Mock<CallAutomationClient> _mockCallAutomationClient;
+    private readonly Mock<IQuestionService> _mockQuestionService;
+    private readonly CallSessionState _callSessionState;
     private readonly Mock<ILogger<CallService>> _mockLogger;
     private readonly AzureCommunicationServicesOptions _acsOptions;
     private readonly CallService _callService;
@@ -27,6 +29,8 @@ public class CallServiceTests
         _mockCallSessionRepository = new Mock<ICallSessionRepository>();
         _mockMemberRepository = new Mock<IMemberRepository>();
         _mockCallAutomationClient = new Mock<CallAutomationClient>();
+        _mockQuestionService = new Mock<IQuestionService>();
+        _callSessionState = new CallSessionState();
         _mockLogger = new Mock<ILogger<CallService>>();
 
         _acsOptions = new AzureCommunicationServicesOptions
@@ -43,6 +47,8 @@ public class CallServiceTests
             _mockMemberRepository.Object,
             _mockCallAutomationClient.Object,
             options,
+            _mockQuestionService.Object,
+            _callSessionState,
             _mockLogger.Object
         );
     }

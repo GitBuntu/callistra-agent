@@ -77,10 +77,10 @@ After running the command, you'll see output like:
 
 ```
 Hosting port: 7071
-Connect via browser: https://k3c9ct2l-7071.eun1.devtunnels.ms
-Inspect network activity: https://k3c9ct2l-7071-inspect.eun1.devtunnels.ms
+Connect via browser: https://abc123-7071.devtunnels.ms
+Inspect network activity: https://abc123-7071-inspect.devtunnels.ms
 
-Ready to accept connections for tunnel: peaceful-dog-z3m7r0j.eun1
+Ready to accept connections for tunnel: your-tunnel-name
 ```
 
 **Copy the first URL** (ending in `.devtunnels.ms`) - this is your public webhook endpoint.
@@ -92,7 +92,7 @@ Edit `src/CallistraAgent.Functions/local.settings.json`:
 ```json
 {
   "Values": {
-    "AzureCommunicationServices__CallbackBaseUrl": "https://k3c9ct2l-7071.eun1.devtunnels.ms"
+    "AzureCommunicationServices__CallbackBaseUrl": "https://your-tunnel-id-7071.devtunnels.ms"
   }
 }
 ```
@@ -120,7 +120,7 @@ curl -X POST http://localhost:7071/api/calls/initiate/1
 
 Your phone should ring, and ACS webhook events will be sent to:
 ```
-https://k3c9ct2l-7071.eun1.devtunnels.ms/api/calls/events
+https://your-tunnel-id-7071.devtunnels.ms/api/calls/events
 ```
 
 ## Troubleshooting
@@ -182,7 +182,7 @@ Update `local.settings.json` with the persistent URL once, and reuse the same `h
 Dev Tunnels provides an inspection URL to debug webhook traffic:
 
 ```
-https://k3c9ct2l-7071-inspect.eun1.devtunnels.ms
+https://your-tunnel-id-7071-inspect.devtunnels.ms
 ```
 
 Open this URL in a browser to see:

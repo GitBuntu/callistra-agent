@@ -8,17 +8,17 @@ public static class HealthcareQuestions
     /// <summary>
     /// Question 1: Identity confirmation
     /// </summary>
-    public const string Question1 = "This is a call about your healthcare enrollment. Can you confirm you are available to answer a few questions? Press 1 for yes, 2 for no.";
+    public const string Question1 = "Press 1 to confirm your identity. Press 2 if you cannot confirm.";
 
     /// <summary>
     /// Question 2: Program awareness
     /// </summary>
-    public const string Question2 = "Are you aware you are enrolled in a healthcare program? Press 1 for yes, 2 for no.";
+    public const string Question2 = "Press 1 if you are aware of your enrollment in your healthcare program. Press 2 if you are not aware.";
 
     /// <summary>
     /// Question 3: Assistance needs
     /// </summary>
-    public const string Question3 = "Would you like assistance with your healthcare services? Press 1 for yes, 2 for no.";
+    public const string Question3 = "Press 1 if you need assistance with your program. Press 2 if you do not need assistance.";
 
     /// <summary>
     /// Gets the question text by number (1-3)
