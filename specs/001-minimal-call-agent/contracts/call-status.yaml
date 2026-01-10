@@ -1,0 +1,158 @@
+openapi: 3.0.3
+info:
+  title: Call Status API
+  version: 1.0.0
+  description: Query call session status and responses
+
+paths:
+  /api/calls/status/{callConnectionId}:
+    get:
+      summary: Get call status by connection ID
+      description: |
+        Retrieves the current status of a call session using the Azure Communication Services
+        call connection ID. Returns call details and any responses captured.
+      operationId: getCallStatus
+      tags:
+        - Calls
+      security:
+        - FunctionKey: []
+      parameters:
+        - name: callConnectionId
+          in: path
+          required: true
+          description: Azure Communication Services call connection identifier
+          schema:
+            type: string
+            example: "abc123-def456"
+      responses:
+        '200':
+          description: Call status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallStatusResponse'
+        '404':
+          description: Call session not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                NotFound:
+                  value:
+                    type: "https://callistra.io/errors/call-not-found"
+                    title: "Call Not Found"
+                    status: 404
+                    detail: "No call session found with connection ID: abc123-def456"
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+components:
+  securitySchemes:
+    FunctionKey:
+      type: apiKey
+      in: header
+      name: x-functions-key
+
+  schemas:
+    CallStatusResponse:
+      type: object
+      properties:
+        callSessionId:
+          type: integer
+          description: Call session database ID
+          example: 42
+        memberId:
+          type: integer
+          description: Member being called
+          example: 1
+        memberName:
+          type: string
+          description: Member's full name
+          example: "John Doe"
+        callConnectionId:
+          type: string
+          description: ACS call connection identifier
+          example: "abc123-def456"
+        status:
+          type: string
+          description: Current call status
+          enum:
+            - Initiated
+            - Ringing
+            - Connected
+            - Completed
+            - Disconnected
+            - Failed
+            - NoAnswer
+          example: "Connected"
+        startTime:
+          type: string
+          format: date-time
+          description: When call was initiated (UTC)
+          example: "2026-01-10T14:30:00Z"
+        endTime:
+          type: string
+          format: date-time
+          nullable: true
+          description: When call ended (UTC), null if still in progress
+          example: "2026-01-10T14:33:00Z"
+        duration:
+          type: integer
+          nullable: true
+          description: Call duration in seconds, null if still in progress
+          example: 180
+        responses:
+          type: array
+          description: Questions and responses captured during call
+          items:
+            $ref: '#/components/schemas/QuestionResponse'
+
+    QuestionResponse:
+      type: object
+      properties:
+        questionNumber:
+          type: integer
+          description: Question sequence number
+          example: 1
+        questionText:
+          type: string
+          description: Question text as spoken to member
+          example: "Can you confirm you are John Doe? Press 1 for yes, 2 for no."
+        responseValue:
+          type: integer
+          description: DTMF response (1 = yes, 2 = no)
+          enum: [1, 2]
+          example: 1
+        responseLabel:
+          type: string
+          description: Human-readable response
+          enum: ["Yes", "No"]
+          example: "Yes"
+        respondedAt:
+          type: string
+          format: date-time
+          description: When response was captured (UTC)
+          example: "2026-01-10T14:31:00Z"
+
+    ProblemDetails:
+      type: object
+      description: RFC 7807 Problem Details for HTTP APIs
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+      required:
+        - type
+        - title
+        - status

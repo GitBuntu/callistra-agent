@@ -1,49 +1,38 @@
-# Callistra-Agent Call Agent API
+# Callistra-Agent
 
-## 📞 Overview
+## 📞 What It Does
 
-**Callistra-Agent** is an intelligent healthcare outreach call center platform that automates member engagement through **Azure Speech Services** and **Azure Communication Services**. It enables organizations to conduct large-scale, interactive voice outreach campaigns with natural language understanding and real-time response capture.
+Makes automated phone calls to healthcare members, asks questions, captures responses.
 
-### 🎯 Project Goals
-- Automate healthcare program member outreach at scale
-- Provide interactive voice response (IVR) with **natural speech recognition** powered by Azure Cognitive Services
-- Capture detailed responses and engagement metrics from each call
-- Ensure data compliance and auditability for healthcare scenarios
-- Enable flexible, configurable call flows for different programs and use cases
+### The Basics
+- Call people using Azure Communication Services
+- Ask 3-5 healthcare questions
+- Record their yes/no answers
+- Save to database
 
-### ⚡ Core Capabilities
-Built with .NET 8, Azure Functions, Entity Framework Core, and SQL Server, featuring:
+### Stack
+- **Azure Functions** (.NET 8) - 3 HTTP endpoints
+- **Azure Communication Services** - Makes the calls
+- **SQL Server** - Stores responses
+- **Entity Framework Core** - Database access
 
-- **Azure Speech Services Integration**: Real-time speech-to-text and text-to-speech capabilities for natural voice interactions
-- **Outbound Call Management**: Automated healthcare outreach to program members
-- **Interactive Voice Response (IVR)**: Dynamic question flows with speech recognition and intelligent response processing
-- **Multi-Channel Support**: Local harness for testing, Twilio, and Azure Communication Services integration
-- **Real-time Call Tracking**: Comprehensive call session and response logging for compliance and analytics
-- **Healthcare Program Management**: Member enrollment, segmentation, and program-specific call flows
-- **Enterprise Security**: Feature flags, role-based configuration, and audit logging
-- **Scalable Architecture**: Repository pattern, Unit of Work, and dependency injection for maintainability
+That's it.
 
-## 🏗️ Architecture
+## Quick Start
 
-### Core Components
-- **Members**: Healthcare program participants to be contacted
-- **CallSessions**: Individual call attempts with status tracking
-- **CallResponses**: Q&A interactions captured during calls
+See [SIMPLE-IMPLEMENTATION.md](SIMPLE-IMPLEMENTATION.md) for the minimalist approach.
 
-### Technology Stack
-- **Backend**: Azure Functions v4 (.NET 8)
-- **Voice & Speech**: 
-  - **Azure Speech Services** (Cognitive Services) for speech-to-text and text-to-speech
-  - **Azure Communication Services** (Call Automation) for outbound calling and PSTN integration
-- **Database**: SQL Server with Entity Framework Core
-- **Configuration**: Options pattern with feature flags
-- **Testing**: xUnit for unit tests, integration tests
+## Architecture
 
-### Design Patterns
-- Repository + Unit of Work Pattern
-- Dependency Injection
-- Configuration-Driven Features
-- Structured Logging
+Three tables:
+- **Members** - Who to call (name, phone, program)
+- **CallSessions** - Call tracking (status, time)
+- **CallResponses** - Q&A data (question, response)
+
+Three functions:
+- **InitiateCall** - Starts the call
+- **HandleCallConnected** - Plays questions when connected
+- **HandleResponse** - Captures answers
 
 ## 📋 Prerequisites
 
