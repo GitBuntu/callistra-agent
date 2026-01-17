@@ -18,7 +18,7 @@ public class QuestionService : IQuestionService
     }
 
     /// <inheritdoc/>
-    public async Task PlayPersonDetectionPromptAsync(CallConnection callConnection, CancellationToken cancellationToken = default)
+    public async Task PlayPersonDetectionPromptAsync(CallConnection callConnection, string targetPhoneNumber, CancellationToken cancellationToken = default)
     {
         if (callConnection == null)
             throw new ArgumentNullException(nameof(callConnection));
@@ -32,7 +32,7 @@ public class QuestionService : IQuestionService
         };
 
         var recognizeOptions = new CallMediaRecognizeDtmfOptions(
-            targetParticipant: new PhoneNumberIdentifier(""),
+            targetParticipant: new PhoneNumberIdentifier(targetPhoneNumber),
             maxTonesToCollect: 1)
         {
             InterruptPrompt = true,
@@ -56,7 +56,7 @@ public class QuestionService : IQuestionService
     }
 
     /// <inheritdoc/>
-    public async Task PlayHealthcareQuestionAsync(CallConnection callConnection, int questionNumber, CancellationToken cancellationToken = default)
+    public async Task PlayHealthcareQuestionAsync(CallConnection callConnection, int questionNumber, string targetPhoneNumber, CancellationToken cancellationToken = default)
     {
         if (callConnection == null)
             throw new ArgumentNullException(nameof(callConnection));
@@ -76,7 +76,7 @@ public class QuestionService : IQuestionService
         };
 
         var recognizeOptions = new CallMediaRecognizeDtmfOptions(
-            targetParticipant: new PhoneNumberIdentifier(""),
+            targetParticipant: new PhoneNumberIdentifier(targetPhoneNumber),
             maxTonesToCollect: 1)
         {
             InterruptPrompt = true,
@@ -100,7 +100,7 @@ public class QuestionService : IQuestionService
     }
 
     /// <inheritdoc/>
-    public async Task<bool> HandleInvalidDtmfAsync(CallConnection callConnection, int questionNumber, int retryCount, CancellationToken cancellationToken = default)
+    public async Task<bool> HandleInvalidDtmfAsync(CallConnection callConnection, int questionNumber, int retryCount, string targetPhoneNumber, CancellationToken cancellationToken = default)
     {
         if (callConnection == null)
             throw new ArgumentNullException(nameof(callConnection));
@@ -128,7 +128,7 @@ public class QuestionService : IQuestionService
             await callConnection.GetCallMedia().PlayToAllAsync(playOptions, cancellationToken);
 
             // Re-play the question after error message
-            await PlayHealthcareQuestionAsync(callConnection, questionNumber, cancellationToken);
+            await PlayHealthcareQuestionAsync(callConnection, questionNumber, targetPhoneNumber, cancellationToken);
 
             return true; // Continue with retry
         }
@@ -141,7 +141,7 @@ public class QuestionService : IQuestionService
     }
 
     /// <inheritdoc/>
-    public async Task<bool> HandleTimeoutAsync(CallConnection callConnection, int questionNumber, bool hasRetriedOnce, CancellationToken cancellationToken = default)
+    public async Task<bool> HandleTimeoutAsync(CallConnection callConnection, int questionNumber, bool hasRetriedOnce, string targetPhoneNumber, CancellationToken cancellationToken = default)
     {
         if (callConnection == null)
             throw new ArgumentNullException(nameof(callConnection));
@@ -169,7 +169,7 @@ public class QuestionService : IQuestionService
             await callConnection.GetCallMedia().PlayToAllAsync(playOptions, cancellationToken);
 
             // Re-play the question after timeout message
-            await PlayHealthcareQuestionAsync(callConnection, questionNumber, cancellationToken);
+            await PlayHealthcareQuestionAsync(callConnection, questionNumber, targetPhoneNumber, cancellationToken);
 
             return true; // Retry once
         }
