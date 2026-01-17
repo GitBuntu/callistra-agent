@@ -67,8 +67,8 @@
 - [X] T023 Create `CallStatus` enum in `src/CallistraAgent.Functions/Models/CallStatus.cs` with values: Initiated, Ringing, Connected, Completed, Disconnected, Failed, NoAnswer, VoicemailMessage
 - [X] T024 Create `CallistraAgentDbContext` in `src/CallistraAgent.Functions/Data/CallistraAgentDbContext.cs` with entity configurations from data-model.md
 - [X] T025 Configure DbContext indexes and constraints per data-model.md specifications
-- [ ] T026 Create EF Core migration `InitialCreate` using `dotnet ef migrations add`
-- [ ] T027 Apply migration to local database using `dotnet ef database update`
+- [X] T026 Create EF Core migration `InitialCreate` using `dotnet ef migrations add`
+- [X] T027 Apply migration to local database using `dotnet ef database update`
 
 ### Configuration & Dependency Injection
 
@@ -115,8 +115,6 @@
 - [X] T046 [P] [US1] Integration test for InitiateCall endpoint - success case in `tests/CallistraAgent.Functions.Tests/Behaviors/MemberBehaviorTests.cs` (BDD-style)
 - [X] T047 [P] [US1] Integration test for InitiateCall endpoint - member not found (404) in MemberBehaviorTests.cs (BDD-style)
 - [X] T048 [P] [US1] Integration test for InitiateCall endpoint - member already has active call (409) in CallSessionBehaviorTests.cs (BDD-style)
-- [ ] T049 [P] [US1] Integration test for CallConnected webhook event in `tests/CallistraAgent.Functions.Tests/Integration/CallWebhookIntegrationTests.cs`
-- [ ] T050 [P] [US1] Integration test for CallDisconnected webhook event in CallWebhookIntegrationTests.cs
 
 ### Service Layer for User Story 1
 

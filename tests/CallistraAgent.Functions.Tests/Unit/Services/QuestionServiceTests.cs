@@ -24,7 +24,7 @@ public class QuestionServiceTests
     {
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => _questionService.PlayPersonDetectionPromptAsync(null!)
+            () => _questionService.PlayPersonDetectionPromptAsync(null!, "+11234567890")
         );
     }
 
@@ -43,7 +43,7 @@ public class QuestionServiceTests
 
         // Act & Assert (should not throw)
         var exception = await Record.ExceptionAsync(() =>
-            _questionService.PlayHealthcareQuestionAsync(mockCallConnection.Object, questionNumber)
+            _questionService.PlayHealthcareQuestionAsync(mockCallConnection.Object, questionNumber, "+11234567890")
         );
 
         // Note: This will throw due to mock limitations, but validates parameter validation
@@ -61,7 +61,7 @@ public class QuestionServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-            () => _questionService.PlayHealthcareQuestionAsync(mockCallConnection.Object, questionNumber)
+            () => _questionService.PlayHealthcareQuestionAsync(mockCallConnection.Object, questionNumber, "+11234567890")
         );
     }
 
@@ -70,7 +70,7 @@ public class QuestionServiceTests
     {
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => _questionService.PlayHealthcareQuestionAsync(null!, 1)
+            () => _questionService.PlayHealthcareQuestionAsync(null!, 1, "+11234567890")
         );
     }
 
@@ -85,7 +85,8 @@ public class QuestionServiceTests
         var result = await _questionService.HandleInvalidDtmfAsync(
             mockCallConnection.Object,
             questionNumber: 1,
-            retryCount: VoicemailMessages.MaxRetries
+            retryCount: VoicemailMessages.MaxRetries,
+            targetPhoneNumber: "+11234567890"
         );
 
         // Assert
@@ -103,7 +104,8 @@ public class QuestionServiceTests
         var result = await _questionService.HandleTimeoutAsync(
             mockCallConnection.Object,
             questionNumber: 1,
-            hasRetriedOnce: true
+            hasRetriedOnce: true,
+            targetPhoneNumber: "+11234567890"
         );
 
         // Assert

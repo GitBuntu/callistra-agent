@@ -21,7 +21,17 @@ public class AzureCommunicationServicesOptions
     public string PhoneNumber { get; set; } = string.Empty;
 
     /// <summary>
+    /// Azure Communication Services endpoint URL (for managed identity authentication)
+    /// </summary>
+    public string? Endpoint { get; set; }
+
+    /// <summary>
     /// Base URL for call event callbacks/webhooks
     /// </summary>
     public string CallbackBaseUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Azure Cognitive Services endpoint URL for text-to-speech and speech recognition
+    /// </summary>
+    public string? CognitiveServicesEndpoint { get; set; }
 }

@@ -87,6 +87,10 @@ public class CallService : ICallService
         callSession = await _callSessionRepository.CreateAsync(callSession, cancellationToken);
         _logger.LogInformation("Created call session {CallSessionId} for member {MemberId}", callSession.Id, memberId);
 
+        // DEBUG: Log configuration values
+        _logger.LogInformation("DEBUG: ACS Config - PhoneNumber: {Phone}, CallbackUrl: {Callback}, CognitiveEndpoint: '{Endpoint}'",
+            _acsOptions.PhoneNumber, _acsOptions.CallbackBaseUrl, _acsOptions.CognitiveServicesEndpoint ?? "NULL");
+
         try
         {
             // Initiate call via Azure Communication Services
@@ -99,6 +103,20 @@ public class CallService : ICallService
                 new CallInvite(target, caller),
                 callbackUri
             );
+
+            // Enable Azure Cognitive Services for TTS/STT if configured
+            if (!string.IsNullOrEmpty(_acsOptions.CognitiveServicesEndpoint))
+            {
+                createCallOptions.CallIntelligenceOptions = new CallIntelligenceOptions()
+                {
+                    CognitiveServicesEndpoint = new Uri(_acsOptions.CognitiveServicesEndpoint)
+                };
+                _logger.LogInformation("Cognitive Services enabled for TTS: {Endpoint}", _acsOptions.CognitiveServicesEndpoint);
+            }
+            else
+            {
+                _logger.LogWarning("Cognitive Services endpoint not configured. Text-to-speech will not work. Add 'AzureCommunicationServices__CognitiveServicesEndpoint' to configuration.");
+            }
 
             var createCallResult = await _callAutomationClient.CreateCallAsync(createCallOptions, cancellationToken);
 
@@ -208,6 +226,14 @@ public class CallService : ICallService
             return;
         }
 
+        // Get member to retrieve phone number
+        var member = await _memberRepository.GetByIdAsync(callSession.MemberId, cancellationToken);
+        if (member == null)
+        {
+            _logger.LogWarning("Member {MemberId} not found for call session {CallSessionId}", callSession.MemberId, callSession.Id);
+            return;
+        }
+
         // Implement Azure's documented AMD approach:
         // 1. After CallConnected, play person detection prompt with DTMF recognition
         // 2. If DTMF received (RecognizeCompleted) = Human detected → Continue with questions
@@ -219,7 +245,7 @@ public class CallService : ICallService
 
         // Play person detection prompt (Azure AMD pattern)
         var callConnection = _callAutomationClient.GetCallConnection(callConnectionId);
-        await _questionService.PlayPersonDetectionPromptAsync(callConnection, cancellationToken);
+        await _questionService.PlayPersonDetectionPromptAsync(callConnection, member.PhoneNumber, cancellationToken);
     }
 
     /// <summary>
@@ -286,9 +312,24 @@ public class CallService : ICallService
             return;
         }
 
+        // Get member phone number for next question
+        var session = await _callSessionRepository.GetByCallConnectionIdAsync(callConnectionId, cancellationToken);
+        if (session == null)
+        {
+            _logger.LogWarning("Call session not found for CallConnectionId: {CallConnectionId}", callConnectionId);
+            return;
+        }
+
+        var member = await _memberRepository.GetByIdAsync(session.MemberId, cancellationToken);
+        if (member == null)
+        {
+            _logger.LogWarning("Member {MemberId} not found", session.MemberId);
+            return;
+        }
+
         // Play next question
         var callConnection2 = _callAutomationClient.GetCallConnection(callConnectionId);
-        await _questionService.PlayHealthcareQuestionAsync(callConnection2, nextQuestion, cancellationToken);
+        await _questionService.PlayHealthcareQuestionAsync(callConnection2, nextQuestion, member.PhoneNumber, cancellationToken);
     }
 
     public async Task HandlePlayCompletedAsync(string callConnectionId, CancellationToken cancellationToken = default)

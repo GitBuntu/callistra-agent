@@ -1,4 +1,5 @@
 using Azure.Communication.CallAutomation;
+using Azure.Identity;
 using CallistraAgent.Functions.Configuration;
 using CallistraAgent.Functions.Data;
 using CallistraAgent.Functions.Data.Repositories;
@@ -37,12 +38,20 @@ var host = new HostBuilder()
             });
         });
 
-        // Register CallAutomationClient as singleton
+        // Register CallAutomationClient as singleton with Managed Identity
         var acsConnectionString = context.Configuration[$"{AzureCommunicationServicesOptions.SectionName}:ConnectionString"];
+        var acsEndpoint = context.Configuration[$"{AzureCommunicationServicesOptions.SectionName}:Endpoint"];
+
         if (!string.IsNullOrEmpty(acsConnectionString))
         {
             services.AddSingleton(sp =>
             {
+                // Use Managed Identity for Cognitive Services integration
+                if (!string.IsNullOrEmpty(acsEndpoint))
+                {
+                    return new CallAutomationClient(new Uri(acsEndpoint), new DefaultAzureCredential());
+                }
+                // Fallback to connection string (local dev without managed identity)
                 return new CallAutomationClient(acsConnectionString);
             });
         }
