@@ -49,6 +49,14 @@ public interface IQuestionService
     Task<bool> HandleTimeoutAsync(CallConnection callConnection, int questionNumber, bool hasRetriedOnce, string targetPhoneNumber, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Plays the completion message after all questions have been answered
+    /// </summary>
+    /// <param name="callConnection">The call connection to play the message on</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Task representing the async operation</returns>
+    Task PlayCompletionMessageAsync(CallConnection callConnection, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Plays the voicemail callback message (no PHI)
     /// </summary>
     /// <param name="callConnection">The call connection to play the message on</param>
