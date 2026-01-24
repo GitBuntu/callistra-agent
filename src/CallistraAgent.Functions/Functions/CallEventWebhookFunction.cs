@@ -177,12 +177,26 @@ public class CallEventWebhookFunction
         // Extract DTMF tones from recognize result
         if (recognizeEvent.RecognizeResult is DtmfResult dtmfResult)
         {
-            var tones = string.Join("", dtmfResult.Tones);
+            // Convert DtmfTone enum values to their numeric string representations (e.g., DtmfTone.One -> "1")
+            var tones = string.Join("", dtmfResult.Tones.Select(tone =>
+            {
+                if (tone.Equals(DtmfTone.Zero)) return "0";
+                if (tone.Equals(DtmfTone.One)) return "1";
+                if (tone.Equals(DtmfTone.Two)) return "2";
+                if (tone.Equals(DtmfTone.Three)) return "3";
+                if (tone.Equals(DtmfTone.Four)) return "4";
+                if (tone.Equals(DtmfTone.Five)) return "5";
+                if (tone.Equals(DtmfTone.Six)) return "6";
+                if (tone.Equals(DtmfTone.Seven)) return "7";
+                if (tone.Equals(DtmfTone.Eight)) return "8";
+                if (tone.Equals(DtmfTone.Nine)) return "9";
+                return tone.ToString();
+            }));
             _logger.LogInformation("DTMF tones received: {Tones} for {CallConnectionId}", tones, callConnectionId);
 
             if (!string.IsNullOrEmpty(tones))
             {
-                await _callService.HandleDtmfResponseAsync(callConnectionId, tones, cancellationToken);
+                await _callService.HandleRecognizeCompletedAsync(callConnectionId, tones, cancellationToken);
             }
         }
         else

@@ -172,11 +172,20 @@ public class CallService : ICallService
             return;
         }
 
-        callSession.Status = CallStatus.Disconnected;
-        callSession.EndTime = DateTime.UtcNow;
-        await _callSessionRepository.UpdateAsync(callSession, cancellationToken);
+        // Only mark as Disconnected if not already in a terminal state (Completed, VoicemailMessage, etc.)
+        if (callSession.Status != CallStatus.Completed && callSession.Status != CallStatus.VoicemailMessage)
+        {
+            callSession.Status = CallStatus.Disconnected;
+            callSession.EndTime = DateTime.UtcNow;
+            await _callSessionRepository.UpdateAsync(callSession, cancellationToken);
 
-        _logger.LogInformation("Call session {CallSessionId} marked as Disconnected", callSession.Id);
+            _logger.LogInformation("Call session {CallSessionId} marked as Disconnected", callSession.Id);
+        }
+        else
+        {
+            _logger.LogInformation("Call session {CallSessionId} already has terminal status {Status}, preserving it",
+                callSession.Id, callSession.Status);
+        }
     }
 
     public async Task HandleCallFailedAsync(string callConnectionId, string reason, CancellationToken cancellationToken = default)
@@ -291,7 +300,7 @@ public class CallService : ICallService
         var nextQuestion = _callSessionState.ProgressToNextQuestion(callConnectionId);
         _logger.LogInformation("Progressed to question {QuestionNumber} for {CallConnectionId}", nextQuestion, callConnectionId);
 
-        // If we've completed all 3 questions, mark call as Completed
+        // If we've completed all 3 questions, mark call as Completed and play completion message
         if (nextQuestion > 3)
         {
             var callSession = await _callSessionRepository.GetByCallConnectionIdAsync(callConnectionId, cancellationToken);
@@ -302,13 +311,13 @@ public class CallService : ICallService
                 await _callSessionRepository.UpdateAsync(callSession, cancellationToken);
                 _logger.LogInformation("Call session {CallSessionId} marked as Completed", callSession.Id);
 
-                // Hang up the call
+                // Play completion message before hanging up
                 var callConnection = _callAutomationClient.GetCallConnection(callConnectionId);
-                await callConnection.HangUpAsync(forEveryone: true, cancellationToken);
+                await _questionService.PlayCompletionMessageAsync(callConnection, cancellationToken);
+                _logger.LogInformation("Playing completion message for {CallConnectionId}, will hang up after message completes", callConnectionId);
             }
 
-            // Clean up state
-            _callSessionState.RemoveCallState(callConnectionId);
+            // Don't clean up state here - will be cleaned up in HandlePlayCompletedAsync
             return;
         }
 
@@ -343,15 +352,20 @@ public class CallService : ICallService
             return;
         }
 
-        // If status is VoicemailMessage, hang up the call
-        if (callSession.Status == CallStatus.VoicemailMessage)
+        // If status is VoicemailMessage or Completed, hang up the call
+        if (callSession.Status == CallStatus.VoicemailMessage || callSession.Status == CallStatus.Completed)
         {
-            _logger.LogInformation("Voicemail message completed, hanging up call {CallConnectionId}", callConnectionId);
+            _logger.LogInformation("{Status} message completed, hanging up call {CallConnectionId}",
+                callSession.Status, callConnectionId);
             var callConnection = _callAutomationClient.GetCallConnection(callConnectionId);
             await callConnection.HangUpAsync(forEveryone: true, cancellationToken);
 
-            callSession.EndTime = DateTime.UtcNow;
-            await _callSessionRepository.UpdateAsync(callSession, cancellationToken);
+            // Only update EndTime for VoicemailMessage (Completed already has EndTime set)
+            if (callSession.Status == CallStatus.VoicemailMessage)
+            {
+                callSession.EndTime = DateTime.UtcNow;
+                await _callSessionRepository.UpdateAsync(callSession, cancellationToken);
+            }
 
             _callSessionState.RemoveCallState(callConnectionId);
         }
@@ -375,8 +389,15 @@ public class CallService : ICallService
             return;
         }
 
-        // Save the response
-        await SaveCallResponseAsync(callSession.Id, state.CurrentQuestionNumber, dtmfTones, cancellationToken);
+        // Save the response only for healthcare questions (1-3), not for person detection (0)
+        if (state.CurrentQuestionNumber >= 1 && state.CurrentQuestionNumber <= 3)
+        {
+            await SaveCallResponseAsync(callSession.Id, state.CurrentQuestionNumber, dtmfTones, cancellationToken);
+        }
+        else
+        {
+            _logger.LogInformation("Skipping response save for question {QuestionNumber} (person detection)", state.CurrentQuestionNumber);
+        }
 
         // Progress to next question
         await HandleDtmfResponseAsync(callConnectionId, dtmfTones, cancellationToken);

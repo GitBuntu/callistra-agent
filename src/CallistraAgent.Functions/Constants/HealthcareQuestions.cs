@@ -21,6 +21,11 @@ public static class HealthcareQuestions
     public const string Question3 = "Press 1 if you need assistance with your program. Press 2 if you do not need assistance.";
 
     /// <summary>
+    /// Completion message played after all questions answered
+    /// </summary>
+    public const string CompletionMessage = "Thank you for answering our questions. Your responses have been recorded. Have a great day. Goodbye.";
+
+    /// <summary>
     /// Gets the question text by number (1-3)
     /// </summary>
     public static string GetQuestion(int questionNumber)

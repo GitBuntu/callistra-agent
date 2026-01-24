@@ -100,6 +100,36 @@ public class QuestionService : IQuestionService
     }
 
     /// <inheritdoc/>
+    public async Task PlayCompletionMessageAsync(CallConnection callConnection, CancellationToken cancellationToken = default)
+    {
+        if (callConnection == null)
+            throw new ArgumentNullException(nameof(callConnection));
+
+        _logger.LogInformation("Playing completion message on call {CallConnectionId}",
+            callConnection.CallConnectionId);
+
+        var playSource = new TextSource(HealthcareQuestions.CompletionMessage)
+        {
+            VoiceName = "en-US-JennyNeural"
+        };
+
+        var playOptions = new PlayToAllOptions(playSource);
+
+        try
+        {
+            await callConnection.GetCallMedia().PlayToAllAsync(playOptions, cancellationToken);
+            _logger.LogInformation("Completion message started successfully on call {CallConnectionId}",
+                callConnection.CallConnectionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to play completion message on call {CallConnectionId}",
+                callConnection.CallConnectionId);
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
     public async Task<bool> HandleInvalidDtmfAsync(CallConnection callConnection, int questionNumber, int retryCount, string targetPhoneNumber, CancellationToken cancellationToken = default)
     {
         if (callConnection == null)
