@@ -12,13 +12,6 @@ description: "Task list template for feature implementation"
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-**Constitution Principles**: All tasks must align with **Callistra-Agent Constitution v1.0.0** (see `.specify/memory/constitution.md`). Task categories reflect principles:
-- Setup/Refactor tasks: **Pragmatism** (track debt, document trade-offs)
-- Code/Lint tasks: **Code Quality** (enforce 80%+ coverage, reviews, DRY)
-- Test tasks: **Testing Standards** (integration/E2E/perf tests, <5 min suite)
-- Design/UX tasks: **UX Consistency** (design system, accessibility WCAG 2.1 AA)
-- Performance/SLA tasks: **User & Performance Requirements** (100ms client ops, <500ms API p95, 1000 concurrent users)
-
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
