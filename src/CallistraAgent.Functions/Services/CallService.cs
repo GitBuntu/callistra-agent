@@ -436,29 +436,4 @@ public class CallService : ICallService
         _logger.LogInformation("Response saved successfully for CallSession {CallSessionId}, Question {QuestionNumber}",
             callSessionId, questionNumber);
     }
-
-    private async Task CompleteCallAsync(string callConnectionId, CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Completing call {CallConnectionId}", callConnectionId);
-
-        var callSession = await _callSessionRepository.GetByCallConnectionIdAsync(callConnectionId, cancellationToken);
-        if (callSession == null)
-        {
-            _logger.LogWarning("Call session not found for CallConnectionId: {CallConnectionId}", callConnectionId);
-            return;
-        }
-
-        // Mark session as completed
-        callSession.Status = CallStatus.Completed;
-        callSession.EndTime = DateTime.UtcNow;
-        await _callSessionRepository.UpdateAsync(callSession, cancellationToken);
-
-        // Hang up the call
-        var callConnection = _callAutomationClient.GetCallConnection(callConnectionId);
-        await callConnection.HangUpAsync(forEveryone: true, cancellationToken);
-
-        // Clean up state
-        _callSessionState.RemoveCallState(callConnectionId);
-        _logger.LogInformation("Call {CallConnectionId} completed successfully", callConnectionId);
-    }
 }

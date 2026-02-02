@@ -31,13 +31,7 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Based on **Callistra-Agent Constitution v1.0.0** (see `.specify/memory/constitution.md`):
-
-- **Pragmatism**: Design includes documented trade-offs and metrics-driven optimization plan
-- **Code Quality**: Linting and formatting tools specified; refactoring plan for duplication if present
-- **Testing Standards**: Unit test framework identified; integration test approach for public APIs planned
-- **UX Consistency**: If UI changes, design system and accessibility audit plan documented
-- **Performance Requirements**: Target SLAs identified; load test strategy for 1000 concurrent users planned
+[Gates determined based on constitution file]
 
 ## Project Structure
 
