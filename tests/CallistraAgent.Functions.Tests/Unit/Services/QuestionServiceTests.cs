@@ -46,8 +46,7 @@ public class QuestionServiceTests
             _questionService.PlayHealthcareQuestionAsync(mockCallConnection.Object, questionNumber, "+11234567890")
         );
 
-        // Note: This will throw due to mock limitations, but validates parameter validation
-        exception.Should().NotBeOfType<ArgumentOutOfRangeException>();
+        exception.Should().BeNull();
     }
 
     [Theory]
