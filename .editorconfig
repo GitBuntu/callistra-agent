@@ -1,7 +1,7 @@
 # EditorConfig is awesome: https://EditorConfig.org
 
-# top-most EditorConfig file
-root = true
+# Allow search to continue to parent directories to find .editorconfig.personal
+root = false
 
 # All files
 [*]
