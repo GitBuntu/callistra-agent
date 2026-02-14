@@ -1,0 +1,209 @@
+openapi: 3.0.0
+info:
+  title: Voice Recognition Campaign Configuration API
+  description: Endpoints for configuring campaign response mode (DTMF-only vs voice-only)
+  version: 1.0.0
+servers:
+  - url: https://api.callistra.io
+    description: Production
+  - url: http://localhost:7071
+    description: Local development (Azure Functions)
+
+tags:
+  - name: Campaign Configuration
+    description: Campaign setup and response mode selection
+
+paths:
+  /api/campaigns/{campaignId}/response-mode:
+    get:
+      tags:
+        - Campaign Configuration
+      summary: Get campaign response mode
+      description: |
+        Retrieve the response mode (DTMF-only or voice-only) for a specific campaign.
+        Response mode is immutable after campaign creation.
+      operationId: getCampaignResponseMode
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+          description: Campaign unique identifier
+      responses:
+        '200':
+          description: Campaign response mode retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponseModeResponse'
+        '404':
+          description: Campaign not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+    post:
+      tags:
+        - Campaign Configuration
+      summary: Create or update campaign response mode
+      description: |
+        Set the response mode for a campaign. Once set, response mode is immutable.
+        All calls in this campaign will use the specified recognition mode.
+      operationId: setCampaignResponseMode
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+          description: Campaign unique identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetCampaignResponseModeRequest'
+      responses:
+        '200':
+          description: Response mode set successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponseModeResponse'
+        '400':
+          description: Invalid request (invalid mode, campaign not found, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: Conflict - Cannot change response mode after campaign creation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+components:
+  schemas:
+    CampaignResponseModeResponse:
+      type: object
+      required:
+        - campaignId
+        - responseMode
+        - createdAt
+      properties:
+        campaignId:
+          type: integer
+          format: int32
+          description: Campaign unique identifier
+        responseMode:
+          type: string
+          enum:
+            - dtmf-only
+            - voice-only
+          description: |
+            Campaign response recognition mode:
+            - dtmf-only: Accept DTMF keypad tones (1-3) only
+            - voice-only: Accept voice input via Azure Speech Services
+        createdAt:
+          type: string
+          format: date-time
+          description: When response mode was set (UTC)
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last update timestamp (null if never changed, immutable)
+
+    SetCampaignResponseModeRequest:
+      type: object
+      required:
+        - responseMode
+      properties:
+        responseMode:
+          type: string
+          enum:
+            - dtmf-only
+            - voice-only
+          description: |
+            Response mode for campaign:
+            - dtmf-only: Members respond via phone keypad (DTMF tones)
+            - voice-only: Members respond using spoken words (Azure Speech Services)
+
+    ProblemDetails:
+      type: object
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+          description: RFC 7807 problem type URI
+          example: https://callistra.io/errors/campaign-not-found
+        title:
+          type: string
+          description: Human-readable error title
+          example: Campaign Not Found
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code
+          example: 404
+        detail:
+          type: string
+          description: Detailed error description (technical)
+          example: Campaign with ID 123 does not exist in database
+        instance:
+          type: string
+          description: Request identifier for debugging
+
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Azure Function authorization key
+
+security:
+  - ApiKey: []
+
+x-ms-examples:
+  dtmf-campaign-response:
+    parameters:
+      campaignId: 42
+    responses:
+      '200':
+        body:
+          campaignId: 42
+          responseMode: dtmf-only
+          createdAt: 2026-02-14T15:30:00Z
+          updatedAt: null
+
+  voice-campaign-response:
+    parameters:
+      campaignId: 43
+    responses:
+      '200':
+        body:
+          campaignId: 43
+          responseMode: voice-only
+          createdAt: 2026-02-14T15:35:00Z
+          updatedAt: null
