@@ -1,0 +1,420 @@
+openapi: 3.0.0
+info:
+  title: Voice Recognition Webhook Callback API
+  description: |
+    Webhook endpoint for receiving voice recognition events from Azure Communication Services.
+    Handles RecognizeCompleted events with voice transcription from Azure Speech Services.
+  version: 1.0.0
+servers:
+  - url: https://api.callistra.io
+    description: Production webhook receiver
+  - url: http://localhost:7071
+    description: Local development (Azure Functions)
+
+tags:
+  - name: Webhooks
+    description: Azure Communication Services event callbacks
+
+paths:
+  /api/calls/events:
+    post:
+      tags:
+        - Webhooks
+      summary: Receive Azure Communication Services call events
+      description: |
+        Webhook endpoint for receiving CloudEvents from Azure Communication Services.
+        Handles both DTMF (existing) and voice recognition (new) events.
+
+        **Voice-Specific Event Types**:
+        - `RecognizeCompleted`: User spoke during prompt; Azure Speech Services transcribed
+        - `RecognizeFailed`: User did not speak (timeout) or STT error
+      operationId: handleCallEvent
+      requestBody:
+        required: true
+        content:
+          application/cloudevents+json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/CloudEventDtmfRecognizeCompleted'
+                - $ref: '#/components/schemas/CloudEventVoiceRecognizeCompleted'
+                - $ref: '#/components/schemas/CloudEventRecognizeFailed'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloudEvent'
+      responses:
+        '200':
+          description: Event processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+        '400':
+          description: Malformed event (invalid CloudEvent format)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookErrorResponse'
+
+components:
+  schemas:
+    CloudEvent:
+      type: object
+      required:
+        - specversion
+        - type
+        - source
+        - id
+        - data
+      properties:
+        specversion:
+          type: string
+          enum:
+            - '1.0'
+          description: CloudEvents specification version
+        type:
+          type: string
+          description: Event type from Azure Communication Services
+          example: Microsoft.Communication.RecognizeCompleted
+        source:
+          type: string
+          format: uri
+          description: Azure Communication Services event source
+          example: /subscriptions/{subscription-id}/resourceGroups/{resource-group}/providers/Microsoft.Communication/communicationServices/{service-name}
+        id:
+          type: string
+          format: uuid
+          description: Unique event identifier
+        subject:
+          type: string
+          description: Event subject (call connection ID)
+          example: /calls/{call-connection-id}
+        datacontenttype:
+          type: string
+          enum:
+            - application/json
+          description: Data encoding format
+        dataschema:
+          type: string
+          format: uri
+          description: Schema URI for event data
+        time:
+          type: string
+          format: date-time
+          description: Event timestamp (UTC)
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/RecognizeCompletedData'
+            - $ref: '#/components/schemas/RecognizeFailedData'
+          description: Event-specific data payload
+
+    CloudEventDtmfRecognizeCompleted:
+      allOf:
+        - $ref: '#/components/schemas/CloudEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - Microsoft.Communication.RecognizeCompleted
+            data:
+              $ref: '#/components/schemas/RecognizeCompletedDataDtmf'
+
+    CloudEventVoiceRecognizeCompleted:
+      allOf:
+        - $ref: '#/components/schemas/CloudEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - Microsoft.Communication.RecognizeCompleted
+            data:
+              $ref: '#/components/schemas/RecognizeCompletedDataVoice'
+
+    CloudEventRecognizeFailed:
+      allOf:
+        - $ref: '#/components/schemas/CloudEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - Microsoft.Communication.RecognizeFailed
+            data:
+              $ref: '#/components/schemas/RecognizeFailedData'
+
+    RecognizeCompletedData:
+      type: object
+      required:
+        - callConnectionId
+        - serverCallId
+        - correlationId
+        - resultInformation
+      properties:
+        callConnectionId:
+          type: string
+          description: Azure Communication Services call connection identifier
+        serverCallId:
+          type: string
+          description: Internal server call identifier
+        correlationId:
+          type: string
+          format: uuid
+          description: Correlation ID for tracing
+        resultInformation:
+          $ref: '#/components/schemas/ResultInformation'
+
+    RecognizeCompletedDataDtmf:
+      allOf:
+        - $ref: '#/components/schemas/RecognizeCompletedData'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - tones
+              properties:
+                tones:
+                  type: array
+                  items:
+                    type: string
+                  description: |
+                    DTMF tones captured (existing behavior)
+                    Example: ["1"], ["2"], ["#"], etc.
+                  example:
+                    - "1"
+
+    RecognizeCompletedDataVoice:
+      allOf:
+        - $ref: '#/components/schemas/RecognizeCompletedData'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - speech
+              properties:
+                speech:
+                  $ref: '#/components/schemas/SpeechData'
+                  description: Voice recognition result from Azure Speech Services
+
+    SpeechData:
+      type: object
+      required:
+        - text
+        - confidence
+      properties:
+        text:
+          type: string
+          maxLength: 500
+          description: |
+            Transcribed text from Azure Speech Services
+            Examples: "yes", "no", "one", "number one", etc.
+        confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: |
+            Confidence score (0.0 to 1.0)
+            - 1.0 = perfect confidence
+            - 0.75 = MVP confidence threshold (75%)
+            - 0.0 = no confidence
+          example: 0.92
+        language:
+          type: string
+          default: en-US
+          description: Language/locale used for recognition (hardcoded en-US for MVP)
+        audioDurationMs:
+          type: number
+          format: double
+          minimum: 0
+          description: Duration of recognized audio in milliseconds
+          example: 1250.5
+
+    RecognizeFailedData:
+      type: object
+      required:
+        - callConnectionId
+        - serverCallId
+        - correlationId
+        - resultInformation
+      properties:
+        callConnectionId:
+          type: string
+          description: Azure Communication Services call connection identifier
+        serverCallId:
+          type: string
+          description: Internal server call identifier
+        correlationId:
+          type: string
+          format: uuid
+          description: Correlation ID for tracing
+        resultInformation:
+          $ref: '#/components/schemas/ResultInformation'
+
+    ResultInformation:
+      type: object
+      required:
+        - code
+        - subcode
+        - message
+      properties:
+        code:
+          type: integer
+          description: Error code
+          example: 400
+        subcode:
+          type: integer
+          description: Error subcode
+          example: 8540
+        message:
+          type: string
+          description: Error message from Azure Communication Services
+          example: "Recognize timeout"
+
+    WebhookResponse:
+      type: object
+      required:
+        - eventId
+        - processed
+      properties:
+        eventId:
+          type: string
+          format: uuid
+          description: CloudEvent ID (from request)
+        processed:
+          type: boolean
+          description: Whether event was processed successfully
+          example: true
+
+    WebhookErrorResponse:
+      type: object
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+          description: RFC 7807 problem type
+          example: https://callistra.io/errors/malformed-event
+        title:
+          type: string
+          description: Error title
+          example: Malformed CloudEvent
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        detail:
+          type: string
+          description: Error details
+        eventId:
+          type: string
+          format: uuid
+          description: CloudEvent ID (if available)
+
+x-ms-examples:
+  voice-recognize-completed:
+    summary: User spoke response (voice-only campaign)
+    description: User spoke "yes" during question prompt; Azure Speech Services transcribed
+    parameters:
+      - value: application/cloudevents+json
+
+    request:
+      body:
+        specversion: "1.0"
+        type: Microsoft.Communication.RecognizeCompleted
+        source: /subscriptions/sub-123/resourceGroups/rg-1/providers/Microsoft.Communication/communicationServices/service-1
+        id: 550e8400-e29b-41d4-a716-446655440000
+        subject: /calls/call-conn-abc123
+        datacontenttype: application/json
+        dataschema: https://aka.ms/communication-events
+        time: "2026-02-14T15:30:45.123Z"
+        data:
+          callConnectionId: call-conn-abc123
+          serverCallId: server-call-xyz789
+          correlationId: corr-123
+          resultInformation:
+            code: 200
+            subcode: 0
+            message: OK
+          data:
+            speech:
+              text: "yes"
+              confidence: 0.92
+              language: en-US
+              audioDurationMs: 1250.5
+
+    responses:
+      '200':
+        body:
+          eventId: 550e8400-e29b-41d4-a716-446655440000
+          processed: true
+
+  dtmf-recognize-completed:
+    summary: User pressed DTMF key (DTMF-only campaign)
+    description: User pressed "1" on keypad; existing DTMF handling
+    parameters:
+      - value: application/cloudevents+json
+
+    request:
+      body:
+        specversion: "1.0"
+        type: Microsoft.Communication.RecognizeCompleted
+        source: /subscriptions/sub-123/resourceGroups/rg-1/providers/Microsoft.Communication/communicationServices/service-1
+        id: 440e8400-e29b-41d4-a716-446655440001
+        subject: /calls/call-conn-def456
+        datacontenttype: application/json
+        dataschema: https://aka.ms/communication-events
+        time: "2026-02-14T15:31:00.000Z"
+        data:
+          callConnectionId: call-conn-def456
+          serverCallId: server-call-uvw012
+          correlationId: corr-456
+          resultInformation:
+            code: 200
+            subcode: 0
+            message: OK
+          data:
+            tones:
+              - "1"
+
+    responses:
+      '200':
+        body:
+          eventId: 440e8400-e29b-41d4-a716-446655440001
+          processed: true
+
+  recognize-failed:
+    summary: User timeout or STT error (voice-only campaign)
+    description: User did not speak within timeout window or Azure Speech Services failed
+    parameters:
+      - value: application/cloudevents+json
+
+    request:
+      body:
+        specversion: "1.0"
+        type: Microsoft.Communication.RecognizeFailed
+        source: /subscriptions/sub-123/resourceGroups/rg-1/providers/Microsoft.Communication/communicationServices/service-1
+        id: 330e8400-e29b-41d4-a716-446655440002
+        subject: /calls/call-conn-ghi789
+        datacontenttype: application/json
+        dataschema: https://aka.ms/communication-events
+        time: "2026-02-14T15:31:15.000Z"
+        data:
+          callConnectionId: call-conn-ghi789
+          serverCallId: server-call-rst345
+          correlationId: corr-789
+          resultInformation:
+            code: 400
+            subcode: 8540
+            message: Recognize timeout - no speech detected within timeout period
