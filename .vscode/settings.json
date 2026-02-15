@@ -2,6 +2,8 @@
     "chat.promptFilesRecommendations": {
         "speckit.constitution": true,
         "speckit.specify": true,
+        "speckit.clarify": true,
+        "speckit.challenge": true,
         "speckit.plan": true,
         "speckit.tasks": true,
         "speckit.implement": true
@@ -22,5 +24,10 @@
     },
     "omnisharp.enableEditorConfigSupport": true,
     "omnisharp.enableRoslynAnalyzers": true,
-    "dotnet.codeLens.enableReferencesCodeLens": true
+    "dotnet.codeLens.enableReferencesCodeLens": true,
+    "azureFunctions.deploySubpath": "src\\CallistraAgent.Functions/bin/Release/net9.0/publish",
+    "azureFunctions.projectLanguage": "C#",
+    "azureFunctions.projectRuntime": "~4",
+    "debug.internalConsoleOptions": "neverOpen",
+    "azureFunctions.preDeployTask": "publish (functions)"
 }
